@@ -12,8 +12,8 @@ Two players each pick a puzzle game (a *track*) and fight on a split screen. Eve
 |---|---|---|
 | Brick | Modern falling blocks (SPACBRACK) | 1 garbage row, one hole per batch |
 | Calm | Calm Combo slide-match | 1 stone (cap 20; overflow costs moves) |
-| Swap | Tetris Attack; reuses Calm's grid, match, cascade and stone code | Garbage slab (3 units = 3 wide, 6 = full row) |
-| Jewel | Columns | 1 rock row rising from the bottom |
+| Swap | Tetris Attack (rising stack, 2-wide swap cursor) | Garbage slab; each unit = 3 panels, 6 panels = a full row (the original 1 unit = 1 panel was far too weak) |
+| Jewel | Columns (6x13 well, diagonals count) | 1 rock row rising from the bottom, one gap per batch; rocks break next to clears |
 | Pop | Puzzle Bobble | 2 grey bubbles under the cluster; ceiling drops every 8 |
 | Grab | Magical Drop | 1 row pushed in from the top |
 | Nom Nom! Pets | Baku Baku | Half a row of food on top |
@@ -34,3 +34,12 @@ Versus CPU, Versus 2P (best of 3), Survival, Side by Side (no attacks, either pl
 ## Neo Geo CD
 
 320x224, two halves of 160 px. One C track interface (`init`, `update`, `receive`, `send`, `draw`, `isDead`) mirrors `js/track.js`. Both picked tracks load from disc before a match. Music as CD audio, one song per track.
+
+## LAN challenges (PC only)
+
+Survival with drop-in challengers, run by `tools/lan-server.js` and `js/net.js`. Settings: CHALLENGES ON/OFF and MY SIDE LEFT/RIGHT only; matchmaking runs in the background.
+- Host keeps their board; the challenger's board clears and counts in. One round.
+- Challenger takes half garbage until a big move (`mark('big')`: Brick/Climb all clear, T-spin, 4 lines; Jewel/Calm chain or 5+; Swap chain or 4+ combo) or 14 pieces/moves (`mark('piece')`).
+- Loser may ask to run it back; winner accepts or declines. Round 2: loser's board resets. 1-1 goes to round 3 with both boards cleared. Max 3 rounds.
+- Winner stays on (priority for the next match); loser starts a fresh Survival.
+- Netplay: inputs only, fixed 60 steps/s; the other side replays them on a copy of the board (same seed).
