@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.1
+# Crossmix Puzzle Arcade — prototype v0.2
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -10,8 +10,9 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 |---|---|---|
 | **Brick** | Modern falling blocks (SPACBRACK's brick race) | In v0.1 |
 | **Calm** | Calm Combo's slide-a-line match-3 | In v0.1 |
+| **Climb** | Tetris Plus: get the professor down to the floor | In v0.2 (CPU still weak, so it isn't dealt to CPUs at random) |
 | Swap, Jewel, Pop, Grab, Nom Nom! Pets | Tetris Attack, Columns, Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
-| Power Brick, Climb, Arsenal | Tetris Battle Gaiden, Tetris Plus, Battle Blocks X, on the Brick engine | Planned |
+| Power Brick, Arsenal | Tetris Battle Gaiden, Battle Blocks X, on the Brick engine | Planned |
 
 ## Modes
 
@@ -21,6 +22,17 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 - **Side by Side:** no attacks, each player plays their own puzzle. A dead board restarts with A. Player 2 can join any time with Start. Either player can pause.
 - **Puzzle select** has **Random**, which picks again on every retry.
 - **Pause (Start):** Resume, Retry, Puzzle Select, Quit. The same menu (minus Resume) comes up when a match ends.
+
+## Climb
+
+- A 2x2 professor walks the stack. He turns at walls and at anything in his way, can step down but never up.
+- A brick landing on his head makes him climb on top of it. If he touches the spiked ceiling, you lose.
+- The ceiling drops a row after 12 bricks, then 10, 9, 8 ... down to every 3. Bricks it touches are destroyed (just that line).
+- Get him to the floor to clear the stage: he drops out, does a little dance, walks off, and the next stage starts with the ceiling reset.
+- Each stage is a scattered pile with a known solution: the first pieces dealt solve it (about 5-10, more on later stages). After that the pieces are random.
+- Classic rules: no hold, no hard drop, no ghost, no wall kicks, one next piece, slow gravity and a slow soft drop.
+- **Versus:** incoming units push garbage rows in from the bottom, lifting the stack and the professor toward the spikes. Clearing a stage sends 4 units.
+- **Climb vs Climb (Versus CPU / 2P) is a race:** both get the same stage and the same pieces, no attacks; first to get the professor down wins the round.
 
 ## Run it
 
@@ -69,5 +81,5 @@ docs/             design notes
 ## Next
 
 1. Neo Geo CD build (NeoCore, from SPACBRACK's `tetris` branch and the Calm Combo port), built by GitHub Actions into BIN/CUE and CHD.
-2. Power Brick, Climb and Arsenal on the Brick engine (waiting on the modern feature checklist).
+2. A better Climb CPU, then Power Brick and Arsenal on the Brick engine.
 3. Swap (reusing Calm's grid and stone code), Jewel, Pop, then Grab and Nom Nom! Pets.

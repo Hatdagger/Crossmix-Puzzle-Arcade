@@ -4,7 +4,7 @@
 
   G.TITLE = 'CROSSMIX';
   G.SUBTITLE = 'PUZZLE ARCADE';
-  G.VERSION = 'v0.1';
+  G.VERSION = 'v0.2';
 
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
@@ -30,13 +30,15 @@
   function selList() {
     var list = G.TRACK_ORDER.map(function (id) { return { id: id, name: G.TRACKS[id].name, ok: true }; });
     list.push({ id: 'random', name: 'RANDOM', ok: true });
-    G.PLANNED.forEach(function (p) { list.push({ id: p.id, name: p.name, ok: false }); });
+    G.PLANNED.forEach(function (p) { if (!G.TRACKS[p.id]) list.push({ id: p.id, name: p.name, ok: false }); });
     return list;
   }
   function builtIds() { return G.TRACK_ORDER.slice(); }
-  function resolvePick(pick) {
+  // forCPU: skip tracks whose CPU player isn't ready yet (Climb's CPU is still weak).
+  function resolvePick(pick, forCPU) {
     if (pick !== 'random') return pick;
-    var ids = builtIds(); return ids[Math.floor(Math.random() * ids.length)];
+    var ids = builtIds().filter(function (id) { return !forCPU || !G.TRACKS[id].cpuWeak; });
+    return ids[Math.floor(Math.random() * ids.length)];
   }
 
   function goTitle() { S.screen = 'title'; S.menu = null; }
@@ -53,13 +55,15 @@
 
   // ---------- matches ----------
   function newSide(i, pick, human, level) {
-    return { i: i, pick: pick, id: resolvePick(pick), human: human, cpuLevel: level, pad: human ? G.Input.humans[i] : new G.Pad(), wins: 0, track: null, active: true };
+    return { i: i, pick: pick, id: resolvePick(pick, !human), human: human, cpuLevel: level, pad: human ? G.Input.humans[i] : new G.Pad(), wins: 0, track: null, active: true };
   }
-  function makeTrack(side, sendOn) {
-    side.track = G.TRACKS[side.id].make({ seed: (Math.random() * 4294967296) >>> 0, side: side.i, cpuLevel: side.human ? 0 : side.cpuLevel, sendOn: sendOn });
+  function makeTrack(side, sendOn, seed, race) {
+    side.track = G.TRACKS[side.id].make({ seed: seed != null ? seed : (Math.random() * 4294967296) >>> 0, side: side.i, cpuLevel: side.human ? 0 : side.cpuLevel, sendOn: sendOn && !race, race: race });
   }
+  // Climb vs Climb in Versus is a race: same stage, same pieces, no attacks.
+  function isRace() { return (S.mode === 'cpu' || S.mode === 'vs') && S.sides[0].id === 'climb' && S.sides[1].id === 'climb'; }
   function link() {
-    var a = S.sides[0], b = S.sides[1], sendOn = S.mode !== 'side';
+    var a = S.sides[0], b = S.sides[1], sendOn = S.mode !== 'side' && !isRace();
     [a, b].forEach(function (s, i) {
       var o = S.sides[1 - i];
       if (!s.track) return;
@@ -78,14 +82,14 @@
     startRound();
   }
   function startRound() {
-    var sendOn = S.mode !== 'side';
-    S.sides.forEach(function (s) { if (s.active) makeTrack(s, sendOn); else s.track = null; });
+    var sendOn = S.mode !== 'side', race = isRace(), seed = (Math.random() * 4294967296) >>> 0;
+    S.sides.forEach(function (s) { if (s.active) makeTrack(s, sendOn, race ? seed : null, race); else s.track = null; });
     link();
     S.phase = 'count'; S.phaseT = 2000; S.lastCount = -1;
   }
   function nextSurvivor() {
     var s = S.sides[1];
-    s.pick = 'random'; s.id = resolvePick('random'); s.cpuLevel = Math.min(8, 1 + S.kos);
+    s.pick = 'random'; s.id = resolvePick('random', true); s.cpuLevel = Math.min(8, 1 + S.kos);
     s.pad = new G.Pad();
     makeTrack(s, true);
     // relink: rebuild send hooks for both sides
@@ -159,6 +163,12 @@
         S.survT = (S.survT || 0) + dt;
         if (S.survT >= 1200) { S.survT = 0; S.kos++; nextSurvivor(); G.sfx('ok'); }
       }
+      return;
+    }
+    if (a.raceWon || b.raceWon) {
+      S.roundWinner = a.raceWon && b.raceWon ? null : a.raceWon ? 0 : 1;
+      if (S.roundWinner != null) S.sides[S.roundWinner].wins++;
+      S.phase = 'roundEnd'; S.phaseT = 2800;
       return;
     }
     if (a.dead || b.dead) {
@@ -303,7 +313,7 @@
         var px = W / 2 + (i ? 12 + k * 8 : -18 - k * 8);
         G.rect(px, 4, 6, 6, sides[i].wins > k ? G.PAL.amber : G.PAL.steelLo);
       }
-      G.text('R' + S.round, W / 2, 4, G.PAL.white, { font: 'small', align: 'center' });
+      G.text(isRace() ? 'RACE' : 'R' + S.round, W / 2, 4, G.PAL.white, { font: 'small', align: 'center' });
     } else if (S.mode === 'survival') G.text('KO ' + S.kos, W / 2, 4, G.PAL.amber, { font: 'small', align: 'center' });
     G.rect(159, HALF_Y, 2, H - HALF_Y, G.PAL.steelLo);
     // overlays

@@ -18,7 +18,7 @@ Two players each pick a puzzle game (a *track*) and fight on a split screen. Eve
 | Grab | Magical Drop | 1 row pushed in from the top |
 | Nom Nom! Pets | Baku Baku | Half a row of food on top |
 | Power Brick | Tetris Battle Gaiden, Brick engine | Garbage row, plus a power meter |
-| Climb | Tetris Plus, Brick engine | Ceiling drops 1 row |
+| Climb | Tetris Plus, Brick engine | 1 garbage row from below, lifting the stack and the professor (Climb vs Climb is a race instead: same stage, same pieces) |
 | Arsenal | Battle Blocks X, Brick engine | Garbage row; weapons from letters |
 
 Power Brick, Climb and Arsenal switch modern Brick features off per track (checklist in the design doc). Each feature is a switch in `G.BRICK_MODERN` in `js/track-brick.js`.

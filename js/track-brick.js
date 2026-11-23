@@ -148,6 +148,7 @@
   };
   P.level = function () { return Math.min(GRAV.length, 1 + Math.floor(this.elapsed / 60000)); };
   P.speedMul = 1;   // weapons / powers will change this later
+  P.gravityMs = function () { return GRAV[this.level() - 1] / this.speedMul; };
 
   P.update = function (dt, pad) {
     this.tickFlash(dt);
@@ -177,8 +178,8 @@
 
     // Gravity and soft drop.
     var soft = pad.down('down');
-    var interval = GRAV[this.level() - 1] / this.speedMul;
-    if (soft) interval = Math.min(interval, this.s.fastSoft ? 50 : 100);
+    var interval = this.gravityMs();
+    if (soft) interval = Math.min(interval, this.s.softMs || (this.s.fastSoft ? 50 : 100));
     // Starting a soft drop must not cash in the gravity time already built up (that made Down act like a hard drop).
     if (soft && !this.wasSoft) this.gravT = Math.min(this.gravT, interval);
     this.wasSoft = soft;
@@ -309,7 +310,8 @@
       }
       ctx.globalAlpha = 1;
     }
-    if (!this.dead) {
+    if (this.drawExtras) this.drawExtras(fx, fy);
+    if (!this.dead && this.piece) {
       var p = this.piece, self = this;
       if (this.s.ghost) {
         var gy = this.ghostY();
@@ -342,10 +344,13 @@
     // incoming bar
     this.drawPendingBar(fx - 7, fy, fh, CELL, this.s.garbageDelay ? GARBAGE_DELAY : 0);
     // stats
+    if (this.drawStats) this.drawStats(x, fy);
+    else {
     G.text('LINES', x + 18, fy + 120, G.PAL.grey, { font: 'small', align: 'center' });
     G.led(String(this.lines), x + 18, fy + 128, G.PAL.amber, 'center');
     G.text('LEVEL', x + 18, fy + 144, G.PAL.grey, { font: 'small', align: 'center' });
     G.led(String(this.level()), x + 18, fy + 152, G.PAL.green, 'center');
+    }
     this.drawFlash(fx + fw / 2, fy + 70);
     if (this.dead) { var c2 = G.ctxRef(); c2.globalAlpha = 0.55; G.rect(fx, fy, fw, fh, '#000'); c2.globalAlpha = 1; }
   };
@@ -367,7 +372,7 @@
     for (var i = 0; i < COLS - 1; i++) bump += Math.abs(heights[i] - heights[i + 1]);
     return { agg: agg, holes: holes, bump: bump, maxH: Math.max.apply(null, heights) };
   }
-  function placements(t) {
+  function placements(t, bonus) {
     var p = t.piece, out = [], rots = p.type === 'O' ? [0] : [0, 1, 2, 3];
     rots.forEach(function (rot) {
       for (var x = -3; x < COLS; x++) {
@@ -380,23 +385,29 @@
         for (var yy = ROWS - 1; yy >= 0; yy--) if (grid[yy].every(function (c) { return c; })) { grid.splice(yy, 1); grid.unshift(emptyRow()); lines++; yy++; }
         var e = evaluate(grid);
         var lineW = e.maxH > 14 ? 1.5 : 0.76;
-        out.push({ rot: rot, x: x, score: -0.51 * e.agg + lineW * lines - 0.36 * e.holes - 0.18 * e.bump });
+        var extra = bonus ? bonus(t, t.cells(p.type, rot, x, y), lines, e) : 0;
+        out.push({ rot: rot, x: x, score: -0.51 * e.agg + lineW * lines - 0.36 * e.holes - 0.18 * e.bump + extra });
       }
     });
     out.sort(function (a, b) { return b.score - a.score; });
     return out;
   }
-  function BrickCPU(track, level) {
-    this.t = track; this.cfg = LEVELS[Math.max(1, Math.min(8, level))];
+  function BrickCPU(track, level, bonus) {
+    this.t = track; this.bonus = bonus; this.cfg = LEVELS[Math.max(1, Math.min(8, level))];
     this.seen = -1; this.wait = 0; this.tap = null; this.plan = null; this.fails = 0;
   }
   BrickCPU.prototype.drive = function (dt, pad) {
     var t = this.t, st = {};
+    // Tracks with moving obstacles (Climb's professor) ask for a fresh plan every so often.
+    if (t.cpuReplan && t.pieceId === this.seen && (this.since = (this.since || 0) + dt) > 600) { this.since = 0; this.seen = -2; }
     if (t.pieceId !== this.seen) {
-      this.seen = t.pieceId; this.wait = this.cfg.think * (0.7 + t.rng() * 0.6);
-      var list = placements(t), pick = list[0];
-      if (list.length > 1 && t.rng() < this.cfg.mistake) pick = list[Math.min(list.length - 1, 1 + Math.floor(t.rng() * 3))];
-      this.plan = pick; this.fails = 0;
+      var fresh = this.seen !== -2;
+      // The CPU has its own dice, so it never changes the track's piece order (Climb races need identical pieces).
+      this.seen = t.pieceId; if (fresh) { this.wait = this.cfg.think * (0.7 + Math.random() * 0.6); this.since = 0; }
+      var list = placements(t, this.bonus), pick = list[0];
+      if (!pick) { this.plan = null; pad.feed(st, dt); return; }
+      if (list.length > 1 && Math.random() < this.cfg.mistake) pick = list[Math.min(list.length - 1, 1 + Math.floor(Math.random() * 3))];
+      this.plan = pick; if (fresh) this.fails = 0;
     }
     if (this.tap) { this.tap = null; pad.feed(st, dt); return; }   // release between taps
     this.wait -= dt;
@@ -404,6 +415,7 @@
     var p = t.piece, plan = this.plan;
     if (p.rot !== plan.rot && this.fails < 6) { st.b = true; this.fails++; }
     else if (p.x !== plan.x && this.fails < 30) { st[p.x < plan.x ? 'right' : 'left'] = true; this.fails++; }
+    else if (t.cpuWait && t.cpuWait(plan)) { pad.feed(st, dt); return; }   // e.g. Climb: let the professor walk clear first
     else if (t.s.hardDrop) st.d = true;
     else { st.down = true; pad.feed(st, dt); return; }
     this.tap = true; this.wait = this.cfg.step;
@@ -415,4 +427,6 @@
     make: function (opts) { return new Brick(opts); }
   });
   G.Brick = Brick;
+  G.BrickCPU = BrickCPU;
+  G.BRICK = { COLS: COLS, ROWS: ROWS, HIDDEN: HIDDEN, CELL: CELL, TYPES: TYPES, SHAPES: SHAPES, PIECES: PIECES, COLORS: COLORS, GARBAGE_DELAY: GARBAGE_DELAY, emptyRow: emptyRow };
 })(globalThis.G = globalThis.G || {});

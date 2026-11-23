@@ -1,9 +1,11 @@
-First playable prototype: Brick and Calm fighting each other.
+Climb (Tetris Plus style) joins Brick and Calm.
 
-- Tracks: Brick (SPACBRACK's modern falling blocks) and Calm (Calm Combo's slide-a-line match-3), both with CPU players (levels 1-8).
-- Modes: Versus CPU and Versus 2P (best of 3), Survival, Side by Side.
-- Puzzle select with Random (picks again on every retry). Pause menu and after-match menu: Retry, Puzzle Select, Quit.
-- Shared attack units with the incoming bar, cancelling, and first balance pass from CPU-vs-CPU runs.
-- Placeholder synth sound effects; no music yet.
+- Get the 2x2 professor to the floor before the spiked ceiling reaches him. Bricks on his head make him climb.
+- Every stage is a scattered pile with a known solution; the first pieces dealt solve it, then pieces turn random.
+- Classic rules: no hold, hard drop, ghost or wall kicks; slow gravity and a slow soft drop.
+- Versus: incoming attacks push garbage rows in from below and lift the professor. Clearing a stage sends 4.
+- Climb vs Climb is a race: same stage and pieces, first one down wins the round.
+- Fixes from v0.1: Calm's move timer is 12 s (down to 6 s); Brick's Down no longer acts like a hard drop.
+- Climb's CPU is still weak, so CPUs only get Climb when you pick it for them.
 
 Unzip and open `index.html` in Chrome, Edge or Firefox.
