@@ -9,13 +9,16 @@
   var COLS = 6, ROWS = 13, CELL = 14, NC = 6, ROCK = 9, SPAWN_C = 2;
   var CFG = {
     fall: 900, fallMin: 140, fallStep: 70, speedUpEvery: 30000,   // gravity speeds up every 30 s
-    soft: 40, lockDelay: 350, das: 150, arr: 50,
+    soft: 75, lockDelay: 350, das: 150, arr: 50,
     garbageDelay: 1000, maxGarbage: 4,                             // rows landing per piece
     flash: 380, settle: 140,
     sendMul: G.JEWEL_SEND || 0.45                                   // mixed-play balance (see tools/sim.js)
   };
-  var COLORS = ['#ff5a6e', '#4fa8ff', '#5ee08a', '#ffd84a', '#c27bff', '#ff9a3c'];
-  var DARK = ['#a8283c', '#225fb0', '#2a8f53', '#b08d14', '#7a3cc0', '#b85a10'];
+  // Each jewel has its own shape and colour (different from Calm's set):
+  // crimson heart, teal drop, lime cross, gold moon, magenta octagon, ice bowtie.
+  var COLORS = ['#ff2f55', '#1fd8c8', '#b4f02e', '#ffbf14', '#ff47d4', '#e6efff'];
+  var DARK = ['#8a0e28', '#0b6e66', '#4f7a0a', '#8a5a00', '#7d1468', '#6f7c99'];
+  var TILE = '#1a1330';
   var DIRS = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
   function emptyGrid() { var g = []; for (var r = 0; r < ROWS; r++) { var row = []; for (var c = 0; c < COLS; c++) row.push(-1); g.push(row); } return g; }
@@ -113,7 +116,7 @@
     var rate = pad.down('down') ? Math.min(CFG.soft, this.speed()) : this.speed();
     if (this.landed()) {
       this.lockT += dt;
-      if (this.lockT >= (pad.down('down') ? 0 : CFG.lockDelay)) this.lock();
+      if (this.lockT >= CFG.lockDelay) this.lock();
     } else {
       this.fallT += dt;
       while (this.fallT >= rate && !this.landed()) { this.fallT -= rate; this.piece.r++; if (pad.down('down')) this.score++; }
@@ -200,6 +203,39 @@
   };
 
   // ---------- drawing ----------
+  function shapePath(ctx, k, cx, cy, s) {
+    ctx.beginPath();
+    switch (k) {
+      case 0:   // heart
+        ctx.moveTo(cx, cy + s);
+        ctx.bezierCurveTo(cx - s * 1.7, cy - s * 0.1, cx - s * 0.9, cy - s * 1.4, cx, cy - s * 0.45);
+        ctx.bezierCurveTo(cx + s * 0.9, cy - s * 1.4, cx + s * 1.7, cy - s * 0.1, cx, cy + s);
+        break;
+      case 1:   // drop
+        ctx.moveTo(cx, cy - s * 1.2);
+        ctx.quadraticCurveTo(cx + s * 0.95, cy - s * 0.1, cx + s * 0.8, cy + s * 0.35);
+        ctx.arc(cx, cy + s * 0.3, s * 0.8, 0.05, Math.PI - 0.05);
+        ctx.quadraticCurveTo(cx - s * 0.95, cy - s * 0.1, cx, cy - s * 1.2);
+        break;
+      case 2:   // cross
+        var a = s * 0.38;
+        ctx.moveTo(cx - a, cy - s); ctx.lineTo(cx + a, cy - s); ctx.lineTo(cx + a, cy - a); ctx.lineTo(cx + s, cy - a);
+        ctx.lineTo(cx + s, cy + a); ctx.lineTo(cx + a, cy + a); ctx.lineTo(cx + a, cy + s); ctx.lineTo(cx - a, cy + s);
+        ctx.lineTo(cx - a, cy + a); ctx.lineTo(cx - s, cy + a); ctx.lineTo(cx - s, cy - a); ctx.lineTo(cx - a, cy - a);
+        break;
+      case 3:   // moon (the bite is painted afterwards)
+        ctx.arc(cx, cy, s, 0, Math.PI * 2);
+        break;
+      case 4:   // octagon
+        for (var i = 0; i < 8; i++) { var an = Math.PI / 8 + i * Math.PI / 4, px = cx + Math.cos(an) * s * 1.05, py = cy + Math.sin(an) * s * 1.05; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+        break;
+      case 5:   // bowtie
+        ctx.moveTo(cx - s, cy - s * 0.85); ctx.lineTo(cx, cy - s * 0.2); ctx.lineTo(cx + s, cy - s * 0.85);
+        ctx.lineTo(cx + s, cy + s * 0.85); ctx.lineTo(cx, cy + s * 0.2); ctx.lineTo(cx - s, cy + s * 0.85);
+        break;
+    }
+    ctx.closePath();
+  }
   function gem(ctx, k, x, y, s, alpha) {
     if (alpha != null) ctx.globalAlpha = alpha;
     var h = s / 2, cx = x + h, cy = y + h;
@@ -210,14 +246,14 @@
       ctx.moveTo(x + 4, y + 4); ctx.lineTo(cx, cy); ctx.lineTo(x + 5, y + s - 3); ctx.moveTo(cx, cy); ctx.lineTo(x + s - 3, cy - 1); ctx.stroke();
       ctx.globalAlpha = 1; return;
     }
-    // faceted gem: dark rim, bright body, top-left facet, sparkle
-    ctx.fillStyle = DARK[k];
-    ctx.beginPath(); ctx.moveTo(cx, y + 1); ctx.lineTo(x + s - 1, cy); ctx.lineTo(cx, y + s - 1); ctx.lineTo(x + 1, cy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = COLORS[k];
-    ctx.beginPath(); ctx.moveTo(cx, y + 3); ctx.lineTo(x + s - 3, cy); ctx.lineTo(cx, y + s - 3); ctx.lineTo(x + 3, cy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.55)';
-    ctx.beginPath(); ctx.moveTo(cx, y + 3); ctx.lineTo(cx, cy); ctx.lineTo(x + 3, cy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.fillRect(cx - 3, cy - 3, 1, 1);
+    // dark slot with a rim in the jewel's colour, then the shape with a shadow and a shine
+    ctx.fillStyle = DARK[k]; ctx.fillRect(x + 1, y + 1, s - 2, s - 2);
+    ctx.fillStyle = TILE; ctx.fillRect(x + 2, y + 2, s - 4, s - 4);
+    var r = s * 0.34;
+    shapePath(ctx, k, cx, cy + 1, r); ctx.fillStyle = DARK[k]; ctx.fill();
+    shapePath(ctx, k, cx, cy, r); ctx.fillStyle = COLORS[k]; ctx.fill();
+    if (k === 3) { ctx.beginPath(); ctx.arc(cx + r * 0.55, cy - r * 0.35, r * 0.82, 0, Math.PI * 2); ctx.fillStyle = TILE; ctx.fill(); }
+    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.fillRect(Math.round(cx - r * 0.6), Math.round(cy - r * 0.55), 1, 1);
     ctx.globalAlpha = 1;
   }
 
@@ -258,7 +294,9 @@
     var rx = bx + bw + 8;
     G.text('NEXT', rx + 13, by + 2, G.PAL.beige, { font: 'small', align: 'center' });
     G.rect(rx, by + 10, 26, 3 * CELL + 6, '#000');
-    for (var j = 0; j < 3; j++) gem(ctx, this.next[j], rx + 6, by + 13 + j * CELL, CELL);
+    // While the piece is still coming in from above the well, NEXT keeps showing it.
+    var shown = this.piece && this.piece.r < 0 ? this.piece.gems : this.next;
+    for (var j = 0; j < 3; j++) gem(ctx, shown[j], rx + 6, by + 13 + j * CELL, CELL);
     G.text('SCORE', rx + 13, by + 70, G.PAL.beige, { font: 'small', align: 'center' });
     G.text(String(this.score), rx + 13, by + 79, G.PAL.green, { font: 'small', align: 'center' });
     G.text('JEWELS', rx + 13, by + 96, G.PAL.beige, { font: 'small', align: 'center' });
