@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.2
+# Crossmix Puzzle Arcade — prototype v0.4
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -12,8 +12,9 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 | **Calm** | Calm Combo's slide-a-line match-3 | In v0.1 |
 | **Climb** | Tetris Plus: get the professor down to the floor | In v0.2 (CPU still weak, so it isn't dealt to CPUs at random) |
 | **Jewel** | Columns: drop a column of 3 jewels, line up 3+ across, down or diagonally. A/B cycle the jewels, D or Up drops. Takes units as rock rows from below (one gap per batch); a rock breaks when a jewel next to it clears | Next release |
-| **Swap** | Tetris Attack: a 2-wide cursor swaps panels (A or B) in a rising stack; hold C or D to raise it faster. Matches of 3+ across or down; panels that land in a new match make chains. Takes units as garbage slabs (each unit = 3 panels, 6 panels = a full row); a match next to a slab turns its bottom row back into panels | Next release |
-| Pop, Grab, Nom Nom! Pets | Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
+| **Swap** | Tetris Attack: a 2-wide cursor swaps panels (A or B) in a rising stack; hold C or D to raise it faster. Matches of 3+ across or down; panels that land in a new match make chains. Takes units as garbage slabs (each unit = 3 panels, 6 panels = a full row); a match next to a slab turns its bottom row back into panels | In v0.3 |
+| **Pop** | Puzzle Bobble: aim with left/right (hold B for fine aim), fire with A, D or Up, C swaps with the next bubble. 3+ of a colour pop; bubbles left hanging drop. Only drops attack: every 2 dropped = 1 unit (x0.85), all clear +3. The ceiling comes down every 12 shots (one fewer every 30 s, down to 7); if you don't fire for 8 s it fires for you. Takes units as grey bubbles (2 per unit) stuck under the cluster; a grey breaks when a bubble next to it pops, and every 8 units taken also bring the ceiling down a row | In v0.4 |
+| Grab, Nom Nom! Pets | Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
 | Power Brick, Arsenal | Tetris Battle Gaiden, Battle Blocks X, on the Brick engine | Planned |
 
 ## Modes
@@ -38,7 +39,7 @@ Survival can be played over your home network, with other players dropping in to
 **How challenges work:**
 - You play Survival against CPUs. Whenever two players with challenges on are free, the server matches them. If more people are waiting, the one waiting longest gets the next open spot; the winner of the last challenge goes first.
 - The host keeps their board and carries on. The challenger's board clears and counts in.
-- The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. (Calm counts moves and Swap counts swaps instead of pieces.)
+- The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. Pop: dropping 4+ bubbles at once or an all clear. (Calm counts moves, Swap counts swaps and Pop counts shots instead of pieces.)
 - A challenge is one round. The loser can press A to **run it back**; if the winner accepts, round 2 is played (the loser's board resets). If that makes it 1-1, round 3 starts with both boards cleared.
 - **Winner stays on** and goes back to fighting CPUs until the next challenger. The loser starts a fresh Survival.
 - No pausing during a challenge. Leaving (closing the page) forfeits.
@@ -107,4 +108,4 @@ docs/             design notes
 
 1. Neo Geo CD build (NeoCore, from SPACBRACK's `tetris` branch and the Calm Combo port), built by GitHub Actions into BIN/CUE and CHD.
 2. A better Climb CPU, then Power Brick and Arsenal on the Brick engine.
-3. Swap (reusing Calm's grid and stone code), Jewel, Pop, then Grab and Nom Nom! Pets.
+3. Grab (Magical Drop), then Nom Nom! Pets (Baku Baku).
