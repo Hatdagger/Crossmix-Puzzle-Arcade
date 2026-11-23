@@ -362,9 +362,16 @@
     var lx = bx + W / 2, lyy = by + LY;
     if (!this.dead) {
       var a = angleOf(this.tick), ca = Math.cos(a), sa = Math.sin(a);
-      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.beginPath();
-      for (var d = 12; d < 44; d += 6) { ctx.moveTo(lx + ca * d, lyy - sa * d); ctx.lineTo(lx + ca * (d + 3), lyy - sa * (d + 3)); }
-      ctx.stroke();
+      // full aim preview: the dotted path the shot will take, wall bounces included,
+      // up to where it hits (no ghost bubble at the landing spot)
+      if (this.state === 'aim') {
+        var ps = newShot(this.tick), n = 0;
+        ctx.fillStyle = 'rgba(255,255,255,.5)';
+        for (var st = 0; st < 2000; st++) {
+          if (stepShot(this.grid, top, ps)) break;
+          if (++n >= 6 && n % 4 === 0) ctx.fillRect(Math.round(bx + ps.x), Math.round(by + ps.y), 1, 1);
+        }
+      }
       ctx.strokeStyle = '#d9ccab'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(lx, lyy); ctx.lineTo(lx + ca * 13, lyy - sa * 13); ctx.stroke();
       G.rect(lx - 10, lyy + 4, 20, 6, '#3a3f52'); G.rect(lx - 10, lyy + 4, 20, 1, '#5d6580');
       if (this.state === 'aim') bubble(ctx, this.cur, lx, lyy);
