@@ -28,7 +28,7 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 - A 2x2 professor walks the stack. He turns at walls and at anything in his way, can step down but never up.
 - Bricks fall straight through him. Once one settles inside his 2x2 square, he slowly climbs (about 1.3 s per row), so you have time to clear a line or two and bring him back down. If he touches the spiked ceiling, you lose.
 - The field is short and chunky: 10 wide, 12 tall, with bigger bricks and a bigger professor.
-- The ceiling drops a row after 12 bricks, then 10, 9, 8 ... down to every 3. Bricks it touches are destroyed (just that line).
+- The ceiling drops a row after 12 bricks, then 10, 9, 8 ... down to every 3. Bricks that touch the spikes are destroyed (just that line), including a pile that reaches the top — only the professor touching the spikes ends the game.
 - Get him to the floor to clear the stage: he drops out, does a little dance, walks off, and the next stage starts with the ceiling reset.
 - Each stage is a scattered pile with a known solution: the first pieces dealt solve it (about 5-10, more on later stages). After that the pieces are random.
 - Classic rules: no hold, no hard drop, no ghost, no wall kicks, one next piece, slow gravity and a slow soft drop.

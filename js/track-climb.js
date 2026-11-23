@@ -144,7 +144,20 @@
     this.piece = { type: type, rot: 0, x: x, y: y };
     this.pieceId++;
     this.gravT = 0; this.lockT = 0; this.resets = 0; this.lastRot = false; this.lowest = y;
+    // Bricks in the way at the top don't end the game: the spikes destroy those lines.
+    for (var tries = 0; tries < 4 && this.collides(type, 0, x, y); tries++) {
+      var self = this;
+      this.cells(type, 0, x, y).forEach(function (c) { if (c[1] >= 0 && c[1] < ROWS && self.grid[c[1]][c[0]]) self.spikeRow(c[1]); });
+    }
     if (this.collides(type, 0, x, y)) this.die();
+  };
+  // The spikes destroy a line of bricks that touches them (just that line, no score, nothing sent).
+  P.spikeRow = function (row) {
+    if (!this.grid[row].some(function (c) { return c; })) return;
+    this.grid[row] = B.emptyRow();
+    this.clearRows = [row]; this.clearT = 200;
+    this.say('CRUNCH!', G.PAL.red);
+    G.sfx && G.sfx('garbage', this.opts.side);
   };
 
   // ---------- professor ----------
@@ -213,7 +226,8 @@
     this.ceil++;
     this.placedSince = 0;
     var row = this.ceilRow() - 1;
-    if (row >= 0 && row < ROWS) this.grid[row] = B.emptyRow();   // bricks it touches are destroyed (just that line)
+    if (row >= 0 && row < ROWS) this.grid[row] = B.emptyRow();   // the line it lands on is destroyed
+    this.spikeRow(this.ceilRow());                                   // and so is a line touching the spikes
     G.sfx && G.sfx('garbage', this.opts.side);
     if (this.prof.y < this.ceilRow()) this.profDies();
   };
@@ -260,6 +274,7 @@
     this.placedSince++;
     if (this.placedSince >= this.dropEvery()) this.dropCeiling();
     if (this.dead) return;
+    this.spikeRow(this.ceilRow());   // bricks touching the spikes are destroyed
     this.spawn();
   };
 
