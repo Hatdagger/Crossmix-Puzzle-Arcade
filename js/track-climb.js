@@ -11,9 +11,10 @@
   'use strict';
 
   var B = G.BRICK, COLS = B.COLS, ROWS = B.ROWS;
-  var FIELD_H = 12;                  // a short, chunky field
+  var FIELD_H = 16;                  // 15 rows to play in, the spikes start in row 16
   var TOP = ROWS - FIELD_H;          // first field row in the engine's 22-row grid
-  var CELL = 12;                     // bigger cells than Brick (8)
+  var CEIL0 = 1;                     // the spiked ceiling starts covering the top row
+  var CELL = 11;                     // bigger cells than Brick (8)
   var SETTINGS = {
     hold: false, preview: 1, ghost: false, hardDrop: false, fastSoft: false, softMs: 110, srs: false, bag: false,
     lockResets: false, tspin: false, b2b: false, combo: false, allClear: false, cancel: true, garbageDelay: true
@@ -30,7 +31,7 @@
   // every row, so the whole pile clears and the professor reaches the floor.
   function genStage(rng, stage) {
     var k = Math.min(12, 4 + stage);
-    var N = Math.max(4, Math.min(8, Math.round(k * 0.8)));
+    var N = Math.max(4, Math.min(10, Math.round(k * 0.8)));
     for (var attempt = 0; attempt < 80; attempt++) {
       var grid = [], y, x;
       for (y = 0; y < ROWS; y++) grid.push(B.emptyRow());
@@ -61,7 +62,7 @@
   // Walk the professor over a stage with no pieces placed: does he reach the floor by himself?
   function freeWalk(grid) {
     function bl(x, y) { return x < 0 || x >= COLS || y >= ROWS || (y >= 0 && !!grid[y][x]); }
-    var x = 0, y = TOP, dir = 1;
+    var x = 0, y = TOP + CEIL0, dir = 1;
     for (var step = 0; step < 300; step++) {
       while (y + 2 < ROWS && !bl(x, y + 2) && !bl(x + 1, y + 2)) y++;
       if (y + 2 >= ROWS) return true;
@@ -78,7 +79,7 @@
   function cellsOf(type, rot, x, y) { return B.SHAPES[type][rot].map(function (c) { return [x + c[0], y + c[1]]; }); }
   function carvable(grid, type, rot, x, y) {
     var cells = cellsOf(type, rot, x, y), i, c;
-    for (i = 0; i < 4; i++) { c = cells[i]; if (c[0] < 0 || c[0] >= COLS || c[1] < TOP + 4 || c[1] >= ROWS || !grid[c[1]][c[0]]) return false; }
+    for (i = 0; i < 4; i++) { c = cells[i]; if (c[0] < 0 || c[0] >= COLS || c[1] < TOP + CEIL0 + 4 || c[1] >= ROWS || !grid[c[1]][c[0]]) return false; }
     function mine(cx, cy) { return cells.some(function (d) { return d[0] === cx && d[1] === cy; }); }
     // straight drop path: nothing above any cell of the piece (other than the piece itself)
     for (i = 0; i < 4; i++) { c = cells[i]; for (var yy = 0; yy < c[1]; yy++) if (grid[yy][c[0]] && !mine(c[0], yy)) return false; }
@@ -89,7 +90,7 @@
   // ---------- the track ----------
   function Climb(opts) {
     var sup = Object.assign({}, opts, { settings: SETTINGS, cpuLevel: 0 });
-    this.ceil = 0;
+    this.ceil = CEIL0;
     G.Brick.call(this, sup);
     this.opts = opts;
     this.stage = 0;
@@ -109,10 +110,10 @@
     this.grid = st.grid;
     this.solution = st.solution.map(function (s) { return s.type; });
     this.solPlan = st.solution; this.solIdx = 0;   // where each solution piece goes (the CPU follows it)
-    this.ceil = 0; this.placedSince = 0;
+    this.ceil = CEIL0; this.placedSince = 0;
     this.queue = [];
     this.fillQueue();
-    this.prof = { x: 0, y: TOP, dir: 1, state: 'walk', t: 0, frame: 0, anim: 0 };
+    this.prof = { x: 0, y: TOP + CEIL0, dir: 1, state: 'walk', t: 0, frame: 0, anim: 0 };
     this.settleProf();
     this.spawn();
     this.say('STAGE ' + this.stage, G.PAL.amber);
@@ -221,7 +222,7 @@
   };
 
   // ---------- ceiling ----------
-  P.dropEvery = function () { return DROP_EVERY[Math.min(this.ceil, DROP_EVERY.length - 1)]; };
+  P.dropEvery = function () { return DROP_EVERY[Math.min(this.ceil - CEIL0, DROP_EVERY.length - 1)]; };
   P.dropCeiling = function () {
     this.ceil++;
     this.placedSince = 0;
@@ -307,7 +308,7 @@
   }
 
   P.draw = function (x, y) {
-    var ctx = G.ctxRef(), fx = x + 35, fy = y + 30, fw = COLS * CELL, fh = FIELD_H * CELL;
+    var ctx = G.ctxRef(), fx = x + 37, fy = y + 4, fw = COLS * CELL, fh = FIELD_H * CELL;
     function sy(row) { return fy + (row - TOP) * CELL; }
     // frame
     G.rect(fx - 3, fy - 3, fw + 6, fh + 6, G.PAL.steelHi);
@@ -337,15 +338,15 @@
       G.rect(fx + sx + 1, fy + ch, 4, 2, G.PAL.white); G.rect(fx + sx + 2, fy + ch + 2, 2, 2, G.PAL.grey);
     }
     // professor
-    var p = this.prof, px = fx + p.x * CELL, py = sy(p.y), flip = p.dir < 0;
+    var p = this.prof, px = fx + p.x * CELL - 1, py = sy(p.y) - 2, flip = p.dir < 0;
     var rows = p.frame ? WALK_B : WALK_A;
     if (p.state === 'climb') { rows = CLIMB_F; py -= Math.round(Math.min(1, p.t / CLIMB_MS) * 4); flip = (Math.floor(p.anim / 300) & 1) === 1; }
     if (p.state === 'dead') rows = DEAD;
     if (p.state === 'win') {
       var t = p.t, bottom = fy + fh;
-      ctx.save(); ctx.beginPath(); ctx.rect(x, fy, 160, fh + 40); ctx.clip();
-      if (t < 400) py += Math.round(t / 400 * 26);
-      else py = bottom + 2;
+      ctx.save(); ctx.beginPath(); ctx.rect(x, fy, 160, 240); ctx.clip();
+      if (t < 400) py += Math.round(t / 400 * 24);
+      else py = bottom;
       if (t >= 400 && t < 1800) { rows = DANCE; flip = (Math.floor(t / 200) & 1) === 1; py -= (Math.floor(t / 100) & 1) * 2; }
       else if (t >= 1800) { rows = (Math.floor(t / 120) & 1) ? WALK_A : WALK_B; flip = false; px += Math.round((t - 1800) / 800 * 110); }
       drawProf(rows, px, py, flip);
