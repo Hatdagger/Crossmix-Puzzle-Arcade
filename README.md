@@ -12,7 +12,8 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 | **Calm** | Calm Combo's slide-a-line match-3 | In v0.1 |
 | **Climb** | Tetris Plus: get the professor down to the floor | In v0.2 (CPU still weak, so it isn't dealt to CPUs at random) |
 | **Jewel** | Columns: drop a column of 3 jewels, line up 3+ across, down or diagonally. A/B cycle the jewels, D or Up drops. Takes units as rock rows from below (one gap per batch); a rock breaks when a jewel next to it clears | Next release |
-| Swap, Pop, Grab, Nom Nom! Pets | Tetris Attack, Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
+| **Swap** | Tetris Attack: a 2-wide cursor swaps panels (A or B) in a rising stack; hold C or D to raise it faster. Matches of 3+ across or down; panels that land in a new match make chains. Takes units as garbage slabs (each unit = 3 panels, 6 panels = a full row); a match next to a slab turns its bottom row back into panels | Next release |
+| Pop, Grab, Nom Nom! Pets | Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
 | Power Brick, Arsenal | Tetris Battle Gaiden, Battle Blocks X, on the Brick engine | Planned |
 
 ## Modes
