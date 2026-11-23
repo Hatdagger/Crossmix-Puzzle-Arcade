@@ -5,7 +5,7 @@
   'use strict';
 
   var T = 16, COLS = 8, ROWS = 7, NC = 6, STONE = 6;
-  var CFG = { startMoves: 15, chainMoves: 1, fourMoves: 1, fiveMoves: 2, maxStones: 20, moveTimer: 7000, minTimer: 3000, stoneDelay: 3000, sendMul: 0.2 };
+  var CFG = { startMoves: 15, chainMoves: 1, fourMoves: 1, fiveMoves: 2, maxStones: 20, moveTimer: 12000, minTimer: 6000, stoneDelay: 3000, sendMul: 0.2 };
   var COLORS = ['#ff8f87', '#7cc4ff', '#7fe0a8', '#ffe08a', '#c6a8ff', '#ffb67c'];
   var DARK = ['#c2585a', '#4a8fcc', '#4aa877', '#c9a64e', '#8d6fd0', '#cc7f45'];
 

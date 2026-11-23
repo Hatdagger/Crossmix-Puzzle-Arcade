@@ -47,7 +47,7 @@ Gamepads: first pad is 1P, second is 2P. A B X Y = Neo Geo A B C D, Back = Selec
 
 - **Brick sends:** 2/3/4 lines = 1/2/4 units, T-spins 2 per line, +1 back-to-back, combo bonus, all clear +10. Incoming garbage waits 1 s (amber bar), then lands (flashing red) the next time you lock a brick without clearing.
 - **Calm sends:** its stone formula (chain step after the first 1, 4-match 1, 5+-match 2, lever 1) × 0.2. Incoming units become stones; they land after your next move or after 3 s.
-- **Calm pressure** (so it can lose to a brick player): 7 s move timer that loses 0.5 s every minute (down to 3 s), each move costs one extra move every 2 minutes, and stones that don't fit on the board (cap 20) cost a move each.
+- **Calm pressure** (so it can lose to a brick player): 12 s move timer that loses 0.5 s every minute (down to 6 s), each move costs one extra move every 2 minutes, and stones that don't fit on the board (cap 20) cost a move each.
 - Your attacks always cancel your own incoming units first.
 
 ## Balance runs

@@ -178,7 +178,10 @@
     // Gravity and soft drop.
     var soft = pad.down('down');
     var interval = GRAV[this.level() - 1] / this.speedMul;
-    if (soft) interval = Math.min(interval, this.s.fastSoft ? 20 : 60);
+    if (soft) interval = Math.min(interval, this.s.fastSoft ? 50 : 100);
+    // Starting a soft drop must not cash in the gravity time already built up (that made Down act like a hard drop).
+    if (soft && !this.wasSoft) this.gravT = Math.min(this.gravT, interval);
+    this.wasSoft = soft;
     this.gravT += dt;
     while (this.gravT >= interval) {
       this.gravT -= interval;
