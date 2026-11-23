@@ -4,7 +4,7 @@
 
   G.TITLE = 'CROSSMIX';
   G.SUBTITLE = 'PUZZLE ARCADE';
-  G.VERSION = 'v0.2';
+  G.VERSION = 'v0.3';
 
   var canvas = document.getElementById('game');
   var ctx = canvas.getContext('2d');
