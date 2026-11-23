@@ -148,6 +148,16 @@
       return;
     }
     if (S.phase === 'over') return;
+    // Survival intermission: both boards are frozen while the next CPU comes in, so the
+    // survivor loses nothing (no gravity, no timers, no garbage) during the changeover.
+    if (S.phase === 'swap') {
+      S.phaseT -= dt;
+      if (!S.swapped && S.phaseT <= 1500) { S.swapped = true; S.kos++; nextSurvivor(); G.sfx('ok'); }
+      var n2 = Math.ceil(S.phaseT / 500);
+      if (S.swapped && n2 !== S.lastCount && n2 <= 3) { S.lastCount = n2; G.sfx(n2 > 0 ? 'count' : 'go'); }
+      if (S.phaseT <= 0) S.phase = 'play';
+      return;
+    }
     // play
     S.sides.forEach(function (s) { if (s.track) s.track.update(dt, s.pad); });
     var a = S.sides[0].track, b = S.sides[1].track;
@@ -159,10 +169,7 @@
     }
     if (S.mode === 'survival') {
       if (a.dead) { S.phase = 'over'; openMenu('over'); return; }
-      if (b.dead) {
-        S.survT = (S.survT || 0) + dt;
-        if (S.survT >= 1200) { S.survT = 0; S.kos++; nextSurvivor(); G.sfx('ok'); }
-      }
+      if (b.dead) { S.phase = 'swap'; S.phaseT = 2800; S.swapped = false; S.lastCount = -1; G.sfx('win'); }
       return;
     }
     if (a.raceWon || b.raceWon) {
@@ -335,6 +342,17 @@
         if (s.human) G.text('A TO RETRY', i * 160 + 80, 100, G.PAL.white, { font: 'small', align: 'center' });
       }
     });
+    if (S.phase === 'swap') {
+      ctx.globalAlpha = 0.6; G.rect(161, HALF_Y, 159, H - HALF_Y, '#000'); ctx.globalAlpha = 1;
+      if (!S.swapped) G.chrome('KO!', 240, 90, 3, 'center');
+      else {
+        G.text('NEXT CHALLENGER', 240, 70, G.PAL.amber, { align: 'center', shadow: '#000' });
+        G.text(G.TRACKS[sides[1].id].name + '  CPU LV ' + sides[1].cpuLevel, 240, 84, G.PAL.white, { font: 'small', align: 'center' });
+        var cn = Math.ceil(S.phaseT / 500);
+        G.chrome(cn > 0 ? String(cn) : 'GO!', 240, 104, 3, 'center');
+      }
+      G.text('PAUSED', 80, 8 + HALF_Y, G.PAL.grey, { font: 'small', align: 'center' });
+    }
     if (S.menu) drawMenu();
   }
   function drawMenu() {

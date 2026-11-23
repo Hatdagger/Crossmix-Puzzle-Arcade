@@ -18,7 +18,7 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 
 - **Versus CPU:** best of 3 against the computer. Choose the CPU level (1-8) with left/right on the title menu, then pick your puzzle and the CPU's.
 - **Versus 2P:** best of 3, each player picks their own puzzle.
-- **Survival:** CPU after CPU, each on a random puzzle and one level tougher. Score = KOs.
+- **Survival:** CPU after CPU, each on a random puzzle and one level tougher. Score = KOs. Between opponents both boards freeze for about 3 s (KO, next challenger, 3-2-1), so the survivor loses nothing during the changeover.
 - **Side by Side:** no attacks, each player plays their own puzzle. A dead board restarts with A. Player 2 can join any time with Start. Either player can pause.
 - **Puzzle select** has **Random**, which picks again on every retry.
 - **Pause (Start):** Resume, Retry, Puzzle Select, Quit. The same menu (minus Resume) comes up when a match ends.
