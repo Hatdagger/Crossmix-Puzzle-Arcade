@@ -11,7 +11,8 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 | **Brick** | Modern falling blocks (SPACBRACK's brick race) | In v0.1 |
 | **Calm** | Calm Combo's slide-a-line match-3 | In v0.1 |
 | **Climb** | Tetris Plus: get the professor down to the floor | In v0.2 (CPU still weak, so it isn't dealt to CPUs at random) |
-| Swap, Jewel, Pop, Grab, Nom Nom! Pets | Tetris Attack, Columns, Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
+| **Jewel** | Columns: drop a column of 3 jewels, line up 3+ across, down or diagonally. A/B cycle the jewels, D or Up drops. Takes units as rock rows from below (one gap per batch); a rock breaks when a jewel next to it clears | Next release |
+| Swap, Pop, Grab, Nom Nom! Pets | Tetris Attack, Puzzle Bobble, Magical Drop, Baku Baku | Planned (greyed out on puzzle select) |
 | Power Brick, Arsenal | Tetris Battle Gaiden, Battle Blocks X, on the Brick engine | Planned |
 
 ## Modes
