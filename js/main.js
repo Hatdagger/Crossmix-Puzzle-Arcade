@@ -148,9 +148,12 @@
       return;
     }
     if (S.phase === 'over') return;
-    // Survival intermission: both boards are frozen while the next CPU comes in, so the
-    // survivor loses nothing (no gravity, no timers, no garbage) during the changeover.
+    // Survival changeover: the survivor keeps playing as normal (a breather to clean up the
+    // board); only the CPU side pauses while the next opponent comes in.
     if (S.phase === 'swap') {
+      var sv = S.sides[0].track;
+      sv.update(dt, S.sides[0].pad);
+      if (sv.dead) { S.phase = 'over'; openMenu('over'); return; }
       S.phaseT -= dt;
       if (!S.swapped && S.phaseT <= 1500) { S.swapped = true; S.kos++; nextSurvivor(); G.sfx('ok'); }
       var n2 = Math.ceil(S.phaseT / 500);
@@ -351,7 +354,6 @@
         var cn = Math.ceil(S.phaseT / 500);
         G.chrome(cn > 0 ? String(cn) : 'GO!', 240, 104, 3, 'center');
       }
-      G.text('PAUSED', 80, 8 + HALF_Y, G.PAL.grey, { font: 'small', align: 'center' });
     }
     if (S.menu) drawMenu();
   }
