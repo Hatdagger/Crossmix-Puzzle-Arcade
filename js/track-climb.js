@@ -2,19 +2,24 @@
 // A 2x2 professor walks the stack. Clear a path so he reaches the floor before the spiked
 // ceiling comes down on him. Each stage starts as a scattered pile with a known solution:
 // the first pieces dealt solve it in 5-10+ placements; after that the pieces are random.
+// Bricks fall straight through the professor; once one settles inside his square he slowly
+// climbs on top of the stack (slow enough to clear a line or two and bring him back down).
 // Versus: incoming units push garbage rows in from the bottom, lifting the stack and the
 // professor toward the spikes. Climb vs Climb is a race: same stages, same pieces, first
 // one to get the professor down wins the round.
 (function (G) {
   'use strict';
 
-  var B = G.BRICK, COLS = B.COLS, ROWS = B.ROWS, HIDDEN = B.HIDDEN, CELL = B.CELL;
+  var B = G.BRICK, COLS = B.COLS, ROWS = B.ROWS;
+  var FIELD_H = 12;                  // a short, chunky field
+  var TOP = ROWS - FIELD_H;          // first field row in the engine's 22-row grid
+  var CELL = 12;                     // bigger cells than Brick (8)
   var SETTINGS = {
-    hold: false, preview: 1, ghost: false, hardDrop: false, fastSoft: false, softMs: 100, srs: false, bag: false,
+    hold: false, preview: 1, ghost: false, hardDrop: false, fastSoft: false, softMs: 110, srs: false, bag: false,
     lockResets: false, tspin: false, b2b: false, combo: false, allClear: false, cancel: true, garbageDelay: true
   };
-  var FALL_MS = 700;                 // slow, steady gravity
-  var WALK_MS = 700, PROF_FALL_MS = 110, CLIMB_MS = 160;
+  var FALL_MS = 750;                 // slow, steady gravity
+  var WALK_MS = 700, PROF_FALL_MS = 120, CLIMB_MS = 1300;
   var DROP_EVERY = [12, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3];   // pieces placed before the ceiling drops again
   var STAGE_CLEAR_UNITS = 4;         // versus: finishing a stage sends this much
   var WIN_MS = 2600;
@@ -25,21 +30,20 @@
   // every row, so the whole pile clears and the professor reaches the floor.
   function genStage(rng, stage) {
     var k = Math.min(12, 4 + stage);
-    var N = Math.max(4, Math.min(12, Math.round(k)));
+    var N = Math.max(4, Math.min(8, Math.round(k * 0.8)));
     for (var attempt = 0; attempt < 80; attempt++) {
       var grid = [], y, x;
       for (y = 0; y < ROWS; y++) grid.push(B.emptyRow());
       for (y = ROWS - N; y < ROWS; y++) for (x = 0; x < COLS; x++) grid[y][x] = B.TYPES[Math.floor(rng() * 7)];
       var carved = [], tries = 0;
-      var target = k;
       while (tries++ < 4000) {
         var holesOk = true;
         for (y = ROWS - N; y < ROWS; y++) if (grid[y].every(function (c) { return c; })) holesOk = false;
-        if (carved.length >= target && holesOk) break;
-        if (carved.length >= target + 4) break;
+        if (carved.length >= k && holesOk) break;
+        if (carved.length >= k + 4) break;
         var type = B.TYPES[Math.floor(rng() * 7)], rot = Math.floor(rng() * 4), px = Math.floor(rng() * (COLS + 3)) - 2;
         var opts = [];
-        for (var py = -2; py < ROWS; py++) if (carvable(grid, type, rot, px, py)) opts.push(py);
+        for (var py = TOP; py < ROWS; py++) if (carvable(grid, type, rot, px, py)) opts.push(py);
         if (!opts.length) continue;
         var cy = opts[Math.floor(rng() * opts.length)];
         cellsOf(type, rot, px, cy).forEach(function (c) { grid[c[1]][c[0]] = null; });
@@ -47,7 +51,6 @@
       }
       var ok = true;
       for (y = ROWS - N; y < ROWS; y++) if (grid[y].every(function (c) { return c; })) ok = false;
-
       if (ok && carved.length >= Math.min(k, 5)) return { grid: grid, solution: carved.reverse(), rows: N };
     }
     // Fallback: a plain pile with one hole per row (always clearable with random pieces).
@@ -58,7 +61,7 @@
   // Walk the professor over a stage with no pieces placed: does he reach the floor by himself?
   function freeWalk(grid) {
     function bl(x, y) { return x < 0 || x >= COLS || y >= ROWS || (y >= 0 && !!grid[y][x]); }
-    var x = 0, y = HIDDEN, dir = 1;
+    var x = 0, y = TOP, dir = 1;
     for (var step = 0; step < 300; step++) {
       while (y + 2 < ROWS && !bl(x, y + 2) && !bl(x + 1, y + 2)) y++;
       if (y + 2 >= ROWS) return true;
@@ -75,13 +78,12 @@
   function cellsOf(type, rot, x, y) { return B.SHAPES[type][rot].map(function (c) { return [x + c[0], y + c[1]]; }); }
   function carvable(grid, type, rot, x, y) {
     var cells = cellsOf(type, rot, x, y), i, c;
-    for (i = 0; i < 4; i++) { c = cells[i]; if (c[0] < 0 || c[0] >= COLS || c[1] < HIDDEN + 4 || c[1] >= ROWS || !grid[c[1]][c[0]]) return false; }
+    for (i = 0; i < 4; i++) { c = cells[i]; if (c[0] < 0 || c[0] >= COLS || c[1] < TOP + 4 || c[1] >= ROWS || !grid[c[1]][c[0]]) return false; }
     function mine(cx, cy) { return cells.some(function (d) { return d[0] === cx && d[1] === cy; }); }
     // straight drop path: nothing above any cell of the piece (other than the piece itself)
     for (i = 0; i < 4; i++) { c = cells[i]; for (var yy = 0; yy < c[1]; yy++) if (grid[yy][c[0]] && !mine(c[0], yy)) return false; }
     // it must rest here: something (or the floor) right under it once it is removed
-    var rests = cells.some(function (d) { var by = d[1] + 1; return by >= ROWS || (grid[by][d[0]] && !mine(d[0], by)); });
-    return rests;
+    return cells.some(function (d) { var by = d[1] + 1; return by >= ROWS || (grid[by][d[0]] && !mine(d[0], by)); });
   }
 
   // ---------- the track ----------
@@ -107,11 +109,10 @@
     this.grid = st.grid;
     this.solution = st.solution.map(function (s) { return s.type; });
     this.solPlan = st.solution; this.solIdx = 0;   // where each solution piece goes (the CPU follows it)
-    this.solLeft = this.solution.length;
     this.ceil = 0; this.placedSince = 0;
     this.queue = [];
     this.fillQueue();
-    this.prof = { x: 0, y: HIDDEN, dir: 1, state: 'walk', t: 0, vy: 0, frame: 0, anim: 0 };
+    this.prof = { x: 0, y: TOP, dir: 1, state: 'walk', t: 0, frame: 0, anim: 0 };
     this.settleProf();
     this.spawn();
     this.say('STAGE ' + this.stage, G.PAL.amber);
@@ -121,12 +122,11 @@
     if (this.solution && this.solution.length) return this.solution.shift();
     return B.TYPES[Math.floor(this.rng() * 7)];
   };
-  P.ceilRow = function () { return HIDDEN + this.ceil; };
+  P.ceilRow = function () { return TOP + this.ceil; };
   P.level = function () { return 1; };
   P.gravityMs = function () { return FALL_MS / this.speedMul; };
 
-  // The ceiling is solid to pieces. The professor is not: bricks fall straight through him,
-  // and only once one settles inside his 2x2 square does he climb on top of it.
+  // The ceiling is solid to pieces. The professor is not: bricks fall straight through him.
   P.collides = function (type, rot, x, y, grid) {
     grid = grid || this.grid;
     var sh = B.SHAPES[type][rot], top = this.ceilRow();
@@ -151,20 +151,12 @@
   P.blocked = function (cx, cy) {
     if (cx < 0 || cx >= COLS || cy >= ROWS) return true;
     if (cy < 0) return false;
-    return !!this.grid[cy][cx];   // the falling piece doesn't get in his way either
+    return !!this.grid[cy][cx];   // the falling piece doesn't get in his way
   };
   P.areaFree = function (x, y) { return !this.blocked(x, y) && !this.blocked(x + 1, y) && !this.blocked(x, y + 1) && !this.blocked(x + 1, y + 1); };
   P.onFloor = function () { return this.prof.y + 2 >= ROWS; };
   P.supported = function () { var p = this.prof; return this.onFloor() || this.blocked(p.x, p.y + 2) || this.blocked(p.x + 1, p.y + 2); };
   P.settleProf = function () { var p = this.prof; while (!this.supported()) p.y++; };
-  // Climb from row `fromY` upward to the first free spot on top of whatever is above him.
-  P.climb = function (fromY) {
-    var p = this.prof, fy = fromY;
-    while (fy >= 0 && !this.areaFree(p.x, fy)) fy--;
-    if (fy === p.y) return;
-    p.target = fy; p.state = 'climb'; p.t = 0;
-    this.say('CLIMB!', G.PAL.yellow);
-  };
   P.profDies = function () { this.prof.state = 'dead'; this.die(); };
   P.updateProf = function (dt) {
     var p = this.prof;
@@ -175,19 +167,25 @@
       if (p.t >= WIN_MS && !this.raceWon) this.newStage();
       return;
     }
-    if (p.state === 'climb') {
+    if (p.y < this.ceilRow()) { this.profDies(); return; }
+    // Bricks settled in his square: he climbs one row at a time, and stops as soon as he is clear
+    // (so clearing a line under him while he climbs brings him straight back down).
+    if (!this.areaFree(p.x, p.y)) {
+      if (p.state !== 'climb') { p.state = 'climb'; p.t = 0; this.say('CLIMB!', G.PAL.yellow); }
       p.t += dt;
-      while (p.t >= CLIMB_MS && p.y > p.target) { p.t -= CLIMB_MS; p.y--; }
-      if (p.y < this.ceilRow()) { this.profDies(); return; }
-      if (p.y <= p.target) { p.state = 'walk'; p.t = 0; }
+      if (p.t >= CLIMB_MS) {
+        p.t -= CLIMB_MS; p.y--;
+        if (p.y < this.ceilRow()) this.profDies();
+      }
       return;
     }
-    if (p.y < this.ceilRow()) { this.profDies(); return; }
+    if (p.state === 'climb') { p.state = 'walk'; p.t = 0; }
     if (this.onFloor()) { this.stageClear(); return; }
     if (!this.supported()) {           // stepping down / falling
-      p.state = 'fall'; p.t += dt;
+      if (p.state !== 'fall') { p.state = 'fall'; p.t = 0; }
+      p.t += dt;
       while (p.t >= PROF_FALL_MS && !this.supported()) { p.t -= PROF_FALL_MS; p.y++; }
-      if (this.onFloor()) { this.stageClear(); return; }
+      if (this.onFloor()) this.stageClear();
       return;
     }
     if (p.state === 'fall') { p.state = 'walk'; p.t = 0; }
@@ -221,7 +219,7 @@
   };
   // Incoming units push garbage rows in from the bottom: the stack and the professor rise.
   P.landGarbage = function () {
-    var batches = this.takeReady(B.GARBAGE_DELAY, 8), self = this, pr = this.prof;
+    var batches = this.takeReady(B.GARBAGE_DELAY, 6), self = this, pr = this.prof;
     if (!batches.length) return;
     batches.forEach(function (b) {
       var hole = b.gap % COLS;
@@ -229,14 +227,12 @@
         self.grid.shift();
         var row = new Array(COLS).fill('G'); row[hole] = null;
         self.grid.push(row);
-        pr.y--; if (pr.target != null) pr.target--;
+        pr.y--;
       }
     });
-    // anything pushed into the ceiling is destroyed
-    for (var y = 0; y < this.ceilRow(); y++) this.grid[y] = B.emptyRow();
+    for (var y = 0; y < this.ceilRow(); y++) this.grid[y] = B.emptyRow();   // pushed into the ceiling = destroyed
     G.sfx && G.sfx('garbage', this.opts.side);
     if (pr.y < this.ceilRow()) this.profDies();
-    else if (!this.areaFree(pr.x, pr.y)) this.climb(pr.y);
   };
 
   P.update = function (dt, pad) {
@@ -251,7 +247,7 @@
   };
 
   P.lock = function () {
-    var p = this.piece, self = this, pr = this.prof;
+    var p = this.piece, self = this;
     var cells = this.cells(p.type, p.rot, p.x, p.y);
     cells.forEach(function (c) { if (c[1] >= 0) self.grid[c[1]][c[0]] = p.type; });
     var sp = this.solPlan && this.solIdx >= 0 && this.solPlan[this.solIdx];
@@ -264,89 +260,108 @@
     this.placedSince++;
     if (this.placedSince >= this.dropEvery()) this.dropCeiling();
     if (this.dead) return;
-    // A brick settled inside his square (or the stack shifted into him): he climbs on top.
-    if (pr.state !== 'climb' && !this.areaFree(pr.x, pr.y)) this.climb(pr.y);
     this.spawn();
   };
 
   // ---------- drawing ----------
-  var K = '#07060b';
-  var PAL = { k: K, s: '#f0c8a0', h: '#eef0ff', g: '#2fe0ff', w: '#f2f2ff', d: '#a8b0c8', p: '#3a3f52', b: '#1d2030', r: '#ff3b47' };
-  function pad16(rows) { return rows.map(function (r) { return (r + '................').slice(0, 16); }); }
-  var TOP = [
-    '.....kkkkkk',
-    '....khhsssk',
-    '...khhssssk',
-    '...khsgkgsk',
-    '...khssssk',
-    '....kssskk',
-    '.....kkkk',
-    '....kwwrwk',
-    '...kwwwrwwk',
-    '...kwdwrwdk',
-    '...kswwwwsk',
-    '...kwwwwwwk'];
-  var WALK_A = pad16(TOP.concat(['....kppkppk', '....kppkppk', '...kbbk.kbbk', '...kkk...kkk']));
-  var WALK_B = pad16(TOP.concat(['....kpkkpk', '...kpk..kpk', '...kbk..kbbk', '...kk....kkk']));
-  var DANCE = pad16([
-    '.....kkkkkk',
-    '....khhsssk',
-    '...khhssssk',
-    '...khsgkgsk',
-    '.ks.khssssk.sk',
-    '.ks..kssskk.sk',
-    '..kw..kkkk.wk',
-    '...kwwwrwwwk',
-    '....kwwrwwk',
-    '....kwdrwdk',
-    '....kwwwwwk',
-    '....kwwwwwk',
-    '....kppkppk',
-    '...kpk..kpk',
-    '..kbbk..kbbk',
-    '..kkk....kkk']);
-  var DEAD = pad16(['', '', '', '', '', '', '', '', '...kkkkkkkkkk', '..khhssgsgssk', '..kwwwwrwwwwk', '..kppppbbbbk', '...kkkkkkkk']);
-
-  P.drawExtras = function (fx, fy) {
-    var top = this.ceilRow(), ctx = G.ctxRef();
-    // ceiling: a slab hanging on chains, spikes along the bottom
-    var ch = (top - HIDDEN) * CELL;
-    if (ch > 0) {
-      G.rect(fx, fy, COLS * CELL, ch, '#2b2433');
-      for (var cy = 0; cy < ch; cy += 4) { G.rect(fx + 10, fy + cy, 2, 3, G.PAL.steelHi); G.rect(fx + COLS * CELL - 12, fy + cy, 2, 3, G.PAL.steelHi); }
+  // The professor: 12x12 pixel art drawn at 2x, so he fills his 2x2 cells (24 px).
+  var PAL = { k: '#07060b', s: '#f0c8a0', h: '#eef0ff', g: '#2fe0ff', w: '#f2f2ff', d: '#a8b0c8', p: '#3a3f52', b: '#1d2030', r: '#ff3b47' };
+  var HEAD = ['...kkkkk', '..khhsssk', '.khsgkgsk', '.khsssssk', '..kkssskk'];
+  var BODY = ['..kwwrwwk', '.kwwwrwwwk', '.kswwrwwsk', '..kwwwwwk'];
+  var WALK_A = HEAD.concat(BODY, ['..kppkppk', '..kbk.kbk', '.kkk..kkk']);
+  var WALK_B = HEAD.concat(BODY, ['..kpk.kpk', '.kbk...kbk', '.kk.....kk']);
+  var CLIMB_F = HEAD.concat(['sk.kwrwk.ks', '.kkwwrwwkk', '..kwwwwwk', '..kwwwwwk', '..kpk.kpk', '..kbk.kbk', '..kk...kk']);
+  var DANCE = ['...kkkkk', '..khhsssk', 'sk.ksgkgsk.ks', '.kkhsssssk.k', '..kkssskk', '..kwwrwwk', '..kwwrwwk', '..kwwwwwk', '..kppkppk', '.kpk...kpk', 'kbk.....kbk', 'kk.......kk'];
+  var DEAD = ['', '', '', '', '', '', '', '', '.kkkkkkkkk', 'khhsgsgswwk', 'kwwwwrwwppk', '.kkkkkkkkk'];
+  function drawProf(rows, x, y, flip) {
+    var ctx = G.ctxRef();
+    for (var r = 0; r < rows.length; r++) {
+      var row = (rows[r] + '            ').slice(0, 12);
+      for (var c = 0; c < 12; c++) {
+        var col = PAL[row[c]];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(x + (flip ? 11 - c : c) * 2, y + r * 2, 2, 2);
+      }
     }
-    G.rect(fx, fy + ch - 3, COLS * CELL, 3, G.PAL.steelHi);
-    for (var sx = 0; sx < COLS * CELL; sx += 4) {
-      G.rect(fx + sx + 1, fy + ch, 2, 2, G.PAL.white); G.px(fx + sx + 1, fy + ch + 2, G.PAL.grey); G.px(fx + sx + 2, fy + ch + 2, G.PAL.grey);
+  }
+  function mini(type, cx, cy, size) {
+    var sh = B.SHAPES[type][0], n = B.PIECES[type].n;
+    var ox = cx - Math.floor(n * size / 2), oy = cy - (type === 'I' ? size * 1.5 : size);
+    sh.forEach(function (c) { G.brick(ox + c[0] * size, oy + c[1] * size, size, B.COLORS[type]); });
+  }
+
+  P.draw = function (x, y) {
+    var ctx = G.ctxRef(), fx = x + 35, fy = y + 30, fw = COLS * CELL, fh = FIELD_H * CELL;
+    function sy(row) { return fy + (row - TOP) * CELL; }
+    // frame
+    G.rect(fx - 3, fy - 3, fw + 6, fh + 6, G.PAL.steelHi);
+    G.rect(fx - 2, fy - 2, fw + 4, fh + 4, G.PAL.steelLo);
+    G.rect(fx, fy, fw, fh, '#0a0912');
+    for (var gx = 1; gx < COLS; gx++) G.rect(fx + gx * CELL, fy, 1, fh, '#13111f');
+    // chains above the field
+    for (var cy0 = y + 2; cy0 < fy - 3; cy0 += 4) { G.rect(fx + 14, cy0, 2, 3, G.PAL.steelHi); G.rect(fx + fw - 16, cy0, 2, 3, G.PAL.steelHi); }
+    // stack
+    for (var ry = TOP; ry < ROWS; ry++) for (var cx = 0; cx < COLS; cx++) {
+      var c = this.grid[ry][cx];
+      if (c) G.brick(fx + cx * CELL, sy(ry), CELL, B.COLORS[c]);
+    }
+    if (this.clearT > 0) {
+      ctx.globalAlpha = this.clearT / 200;
+      for (var k = 0; k < this.clearRows.length; k++) if (this.clearRows[k] >= TOP) G.rect(fx, sy(this.clearRows[k]), fw, CELL, '#ffffff');
+      ctx.globalAlpha = 1;
+    }
+    // ceiling slab with spikes, hanging on chains
+    var ch = this.ceil * CELL;
+    if (ch > 0) {
+      G.rect(fx, fy, fw, ch, '#2b2433');
+      for (var q = 0; q < ch; q += 4) { G.rect(fx + 14, fy + q, 2, 3, G.PAL.steelHi); G.rect(fx + fw - 16, fy + q, 2, 3, G.PAL.steelHi); }
+    }
+    G.rect(fx, fy + ch - 3, fw, 3, G.PAL.steelHi);
+    for (var sx = 0; sx < fw; sx += 6) {
+      G.rect(fx + sx + 1, fy + ch, 4, 2, G.PAL.white); G.rect(fx + sx + 2, fy + ch + 2, 2, 2, G.PAL.grey);
     }
     // professor
-    var p = this.prof, px = fx + p.x * CELL, py = fy + (p.y - HIDDEN) * CELL, rows = (p.frame ? WALK_B : WALK_A), flip = p.dir < 0;
-    if (p.state === 'climb') rows = (Math.floor(p.anim / 120) & 1) ? WALK_A : WALK_B;
+    var p = this.prof, px = fx + p.x * CELL, py = sy(p.y), flip = p.dir < 0;
+    var rows = p.frame ? WALK_B : WALK_A;
+    if (p.state === 'climb') { rows = CLIMB_F; py -= Math.round(Math.min(1, p.t / CLIMB_MS) * 4); flip = (Math.floor(p.anim / 300) & 1) === 1; }
     if (p.state === 'dead') rows = DEAD;
     if (p.state === 'win') {
-      var t = p.t, bottom = fy + (ROWS - HIDDEN) * CELL;
-      ctx.save(); ctx.beginPath(); ctx.rect(fx - 40, fy, COLS * CELL + 80, (ROWS - HIDDEN) * CELL + 30); ctx.clip();
-      if (t < 400) py = py + Math.round(t / 400 * 16);
-      else py = bottom - 4;
+      var t = p.t, bottom = fy + fh;
+      ctx.save(); ctx.beginPath(); ctx.rect(x, fy, 160, fh + 40); ctx.clip();
+      if (t < 400) py += Math.round(t / 400 * 26);
+      else py = bottom + 2;
       if (t >= 400 && t < 1800) { rows = DANCE; flip = (Math.floor(t / 200) & 1) === 1; py -= (Math.floor(t / 100) & 1) * 2; }
-      else if (t >= 1800) { rows = (Math.floor(t / 120) & 1) ? WALK_A : WALK_B; flip = false; px += Math.round((t - 1800) / 800 * 90); }
-      G.sprite(rows, px, py, PAL, null, flip);
+      else if (t >= 1800) { rows = (Math.floor(t / 120) & 1) ? WALK_A : WALK_B; flip = false; px += Math.round((t - 1800) / 800 * 110); }
+      drawProf(rows, px, py, flip);
       ctx.restore();
-      return;
+    } else drawProf(rows, px, py, flip);
+    // falling piece (drawn over him: bricks pass through)
+    if (this.piece && !this.dead) {
+      var pc = this.piece;
+      this.cells(pc.type, pc.rot, pc.x, pc.y).forEach(function (cc) {
+        if (cc[1] >= TOP) G.brick(fx + cc[0] * CELL, sy(cc[1]), CELL, B.COLORS[pc.type]);
+      });
     }
-    if (py + 16 > fy) G.sprite(rows, px, py, PAL, null, flip);
-  };
-  P.drawStats = function (x, fy) {
-    G.text('STAGE', x + 18, fy + 104, G.PAL.grey, { font: 'small', align: 'center' });
-    G.led(String(this.stage), x + 18, fy + 112, G.PAL.amber, 'center');
-    G.text('DROP IN', x + 18, fy + 128, G.PAL.grey, { font: 'small', align: 'center' });
-    G.led(String(Math.max(0, this.dropEvery() - this.placedSince)), x + 18, fy + 136, G.PAL.red, 'center');
-    G.text('LINES', x + 18, fy + 152, G.PAL.grey, { font: 'small', align: 'center' });
-    G.text(String(this.lines), x + 18, fy + 160, G.PAL.white, { font: 'small', align: 'center' });
+    // next, stats, incoming bar
+    G.text('NEXT', x + 15, fy, G.PAL.beige, { font: 'small', align: 'center' });
+    G.rect(x + 2, fy + 8, 25, 20, G.PAL.ink);
+    if (this.queue[0]) mini(this.queue[0], x + 15, fy + 18, 6);
+    G.text('STAGE', x + 17, fy + 40, G.PAL.grey, { font: 'small', align: 'center' });
+    G.led(String(this.stage), x + 17, fy + 48, G.PAL.amber, 'center');
+    G.text('DROP', x + 17, fy + 66, G.PAL.grey, { font: 'small', align: 'center' });
+    G.text('IN', x + 17, fy + 72, G.PAL.grey, { font: 'small', align: 'center' });
+    G.led(String(Math.max(0, this.dropEvery() - this.placedSince)), x + 17, fy + 80, G.PAL.red, 'center');
+    G.text('LINES', x + 17, fy + 100, G.PAL.grey, { font: 'small', align: 'center' });
+    G.text(String(this.lines), x + 17, fy + 108, G.PAL.white, { font: 'small', align: 'center' });
+    this.drawPendingBar(fx - 7, fy, fh, CELL, B.GARBAGE_DELAY);
+    this.drawFlash(fx + fw / 2, fy + 50);
+    if (this.dead) { ctx.globalAlpha = 0.55; G.rect(fx, fy, fw, fh, '#000'); ctx.globalAlpha = 1; }
   };
 
+  // ---------- CPU ----------
   P.cpuReplan = true;
-  // CPU: don't speed a piece onto the spot where the professor is walking.
+  // Don't speed a piece onto the spot where the professor is walking.
   P.cpuWait = function (plan) {
     var pc = this.piece, pr = this.prof, g = this.grid;
     if (!pc) return false;
@@ -355,17 +370,12 @@
     while (!hit(y + 1)) y++;
     return sh.some(function (c) { var cx = plan.x + c[0], cy = y + c[1]; return cx >= pr.x - 1 && cx <= pr.x + 2 && cy >= pr.y - 1 && cy <= pr.y + 2; });
   };
-
-  // CPU: the brick heuristic, plus "don't drop things on the professor" and a push to dig under him.
+  // The brick heuristic, plus: follow the stage's solution while still on script,
+  // and avoid settling bricks in the professor's square.
   function cpuBonus(t, cells, lines) {
     var p = t.prof, s = 0, sp = t.solIdx >= 0 && t.solPlan[t.solIdx], pc = t.piece;
-    // Still on the stage's script: put the piece where the solution says.
-    if (sp && pc && sp.type === pc.type) {
-      if (canon(cellsOf(sp.type, sp.rot, sp.x, 0)) === canon(cells)) s += 100;
-    }
-    cells.forEach(function (c) {
-      if (c[0] >= p.x && c[0] <= p.x + 1 && c[1] >= p.y && c[1] <= p.y + 1) s -= 2;   // settling in his square makes him climb
-    });
+    if (sp && pc && sp.type === pc.type && canon(cellsOf(sp.type, sp.rot, sp.x, 0)) === canon(cells)) s += 100;
+    cells.forEach(function (c) { if (c[0] >= p.x && c[0] <= p.x + 1 && c[1] >= p.y && c[1] <= p.y + 1) s -= 2; });
     return s + lines * 0.8;
   }
 
