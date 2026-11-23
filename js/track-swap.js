@@ -78,6 +78,7 @@
     if (R) { R.sw = CELL; R.chain = false; }
     if (L) { L.sw = -CELL; L.chain = false; }
     G.sfx && G.sfx('rotate', this.opts.side);
+    this.mark('piece');
     return true;
   };
   P.handle = function (pad) {
@@ -163,6 +164,7 @@
     if (isChain) { this.chain++; this.say('CHAIN X' + this.chain, G.PAL.yellow); this.stopT = Math.max(this.stopT, CFG.stopChain); }
     else if (!this.chain) this.chain = 1;
     if (this.chain > this.maxChain) this.maxChain = this.chain;
+    if (isChain || n >= 4) this.mark('big');
     if (n >= 4) { this.say(n + ' COMBO', G.PAL.cyan); this.stopT = Math.max(this.stopT, CFG.stopCombo + n * 100); this.attack(n - 1); }
     this.score += n * 10 * Math.max(1, this.chain);
     G.sfx && G.sfx(isChain || n >= 4 ? 'big' : 'clear', this.opts.side);

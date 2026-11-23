@@ -131,6 +131,7 @@
     });
     this.piece = null;
     G.sfx && G.sfx('lock', this.opts.side);
+    this.mark('piece');
     this.overflow = over;
     this.chain = 0; this.attack = 0;
     this.resolveCheck();
@@ -143,6 +144,7 @@
     this.jewels += m.count;
     this.score += m.count * 10 * this.chain * this.chain;
     this.attack += stepUnits(this.chain, m.count);
+    if (this.chain > 1 || m.count >= 5) this.mark('big');
     if (this.chain > 1) this.say('CHAIN X' + this.chain, G.PAL.yellow);
     else if (m.count >= 5) this.say(m.count + ' JEWELS', G.PAL.cyan);
     G.sfx && G.sfx(this.chain > 1 ? 'big' : 'clear', this.opts.side);

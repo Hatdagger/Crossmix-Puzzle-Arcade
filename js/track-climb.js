@@ -268,6 +268,7 @@
     var sp = this.solPlan && this.solIdx >= 0 && this.solPlan[this.solIdx];
     this.solIdx = (sp && sp.type === p.type && canon(cellsOf(sp.type, sp.rot, sp.x, 0)) === canon(cells)) ? this.solIdx + 1 : -1;
     G.sfx && G.sfx('lock', this.opts.side);
+    this.mark('piece');
     this.piece = null;
     var n = this.clearLines();
     if (n > 0) this.scoreClear(n, 0); else this.landGarbage();

@@ -45,8 +45,13 @@
       this.sent = 0;            // units sent this round (stats)
       this.flash = [];          // floating messages {text, t, color}
       this.cancelOn = true;     // your attacks cancel your incoming first
+      this.markFns = [];
     },
     onSend: function (fn) { this.sendFns.push(fn); },
+    // Milestones for netplay rules: mark('piece') for every piece placed / move made,
+    // mark('big') for a hard move (T-spin, 4 lines, all clear, chains...).
+    onMark: function (fn) { this.markFns.push(fn); },
+    mark: function (kind) { (this.markFns || []).forEach(function (f) { f(kind); }); },
     receive: function (n) {
       if (n <= 0 || this.dead) return;
       this.pending.push({ n: n, t: 0, gap: Math.floor(this.rng() * 1000) });

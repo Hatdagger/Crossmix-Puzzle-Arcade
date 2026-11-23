@@ -17,7 +17,7 @@ jobs:
           V=$(tr -d ' \n' < VERSION)
           echo "V=$V" >> $GITHUB_ENV
           mkdir -p "Crossmix-$V"
-          cp -r index.html js README.md docs "Crossmix-$V/"
+          cp -r index.html js tools README.md docs start-lan-server.bat start-lan-server.sh "Crossmix-$V/"
           zip -qr "Crossmix-$V.zip" "Crossmix-$V"
       - name: Create release
         env:

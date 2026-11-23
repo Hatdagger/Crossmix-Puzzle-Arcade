@@ -25,6 +25,26 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 - **Puzzle select** has **Random**, which picks again on every retry.
 - **Pause (Start):** Resume, Retry, Puzzle Select, Quit. The same menu (minus Resume) comes up when a match ends.
 
+## LAN challenges (PC netplay)
+
+Survival can be played over your home network, with other players dropping in to challenge you. The only settings are on the title screen (and the pause menu): **CHALLENGES ON/OFF** and **MY SIDE LEFT/RIGHT** (which half of the screen is yours). Everything else happens in the background.
+
+**Set up (once per session):**
+1. Install [Node.js](https://nodejs.org) on one PC (nothing else to install).
+2. Unzip the release on that PC and double-click `start-lan-server.bat` (Windows) or run `start-lan-server.sh` (Linux). Keep the window open; it shows an address like `http://192.168.1.20:8080/`.
+3. On every PC that wants to play (including that one), open that address in Chrome, Edge or Firefox.
+4. Set **CHALLENGES ON**, then play **SURVIVAL**.
+
+**How challenges work:**
+- You play Survival against CPUs. Whenever two players with challenges on are free, the server matches them. If more people are waiting, the one waiting longest gets the next open spot; the winner of the last challenge goes first.
+- The host keeps their board and carries on. The challenger's board clears and counts in.
+- The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. (Calm counts moves and Swap counts swaps instead of pieces.)
+- A challenge is one round. The loser can press A to **run it back**; if the winner accepts, round 2 is played (the loser's board resets). If that makes it 1-1, round 3 starts with both boards cleared.
+- **Winner stays on** and goes back to fighting CPUs until the next challenger. The loser starts a fresh Survival.
+- No pausing during a challenge. Leaving (closing the page) forfeits.
+
+Only button presses cross the network: each PC runs its own board and sends its inputs; the other PC replays them on an exact copy of your board. The GitHub Pages version can't reach a LAN server, so there CHALLENGES ON just plays solo.
+
 ## Climb
 
 - A 2x2 professor walks the stack. He turns at walls and at anything in his way, can step down but never up.
@@ -76,8 +96,10 @@ index.html        the browser prototype (320x224, Neo Geo resolution)
 js/track.js       the track interface + shared attack bar
 js/track-*.js     one file per puzzle game
 js/main.js        title, puzzle select, matches, menus
+js/net.js         Survival with LAN challenges (netplay)
 js/gfx.js         pixel renderer kit from SPACBRACK
 tools/sim.js      headless CPU-vs-CPU balance runs
+tools/lan-server.js  LAN server for challenges (plain Node)
 docs/             design notes
 ```
 

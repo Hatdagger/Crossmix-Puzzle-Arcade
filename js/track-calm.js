@@ -97,6 +97,7 @@
     this.lever = !d.preview.hit[fr][fc];
     this.cursor = { r: fr, c: fc };
     this.drag = null; this.moves -= this.moveCost(); this.idleT = 0;
+    this.mark('piece');
     this.chain = 0; this.gain = 0; this.attack = 0;
     this.state = 'wait'; this.phaseT = 110;
   };
@@ -125,6 +126,7 @@
       if (this.chain >= 2) { this.gain += CFG.chainMoves; this.attack += 1; }
       if (this.chain === 1 && this.lever) { pts += 50; this.attack += 1; this.say('LEVER!', '#ffc2e8'); }
       this.score += pts * this.chain;
+      if (this.chain > 1 || m.groups.some(function (n) { return n >= 5; })) this.mark('big');
       if (this.chain > 1) this.say('CHAIN X' + this.chain, G.PAL.yellow);
       for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) if (m.hit[r][c]) {
         this.grid[r][c].dying = true;

@@ -16,6 +16,8 @@
     { id: 'vs', name: 'VERSUS 2P', desc: 'BEST OF 3, PLAYER AGAINST PLAYER' },
     { id: 'survival', name: 'SURVIVAL', desc: 'BEAT CPU AFTER CPU. SCORE = KOS' },
     { id: 'side', name: 'SIDE BY SIDE', desc: 'NO ATTACKS. EITHER PLAYER CAN PAUSE' },
+    { id: 'challenges', name: 'CHALLENGES', desc: 'SURVIVAL ON YOUR NETWORK: OTHERS CAN JUMP IN' },
+    { id: 'myside', name: 'MY SIDE', desc: 'YOUR HALF OF THE SCREEN IN SURVIVAL' },
     { id: 'sound', name: 'SOUND', desc: 'PLACEHOLDER BLIPS' }
   ];
 
@@ -72,6 +74,12 @@
   }
   function startMatch() {
     var m = S.mode;
+    // Survival with CHALLENGES ON runs in net.js (LAN matchmaking in the background).
+    if (m === 'survival' && G.Net && G.SETTINGS.challenges) {
+      S.screen = 'net'; S.menu = null;
+      G.Net.start(S.picks[0], { exit: goTitle, select: goSelect, bg: bg });
+      return;
+    }
     S.sides = [
       newSide(0, S.picks[0], true, 0),
       m === 'vs' || m === 'side' ? newSide(1, S.picks[1], true, 0) : newSide(1, m === 'survival' ? 'random' : S.picks[1], false, m === 'survival' ? 1 : S.cpuLevel)
@@ -198,12 +206,18 @@
     if (G.Input.any('repeat', 'up', 250, 120)) { S.titleSel = (S.titleSel + MODES.length - 1) % MODES.length; G.sfx('menu'); }
     if (G.Input.any('repeat', 'down', 250, 120)) { S.titleSel = (S.titleSel + 1) % MODES.length; G.sfx('menu'); }
     var m = MODES[S.titleSel];
+    if ((m.id === 'challenges' || m.id === 'myside') && (G.Input.any('pressed', 'left') || G.Input.any('pressed', 'right'))) {
+      if (m.id === 'challenges') G.toggleChallenges(); else G.toggleSide();
+      G.sfx('menu');
+    }
     if (m.id === 'cpu') {
       var d = (G.Input.any('repeat', 'right', 250, 120) ? 1 : 0) - (G.Input.any('repeat', 'left', 250, 120) ? 1 : 0);
       if (d) { S.cpuLevel = Math.max(1, Math.min(8, S.cpuLevel + d)); G.sfx('menu'); try { localStorage.setItem('crossmix-cpu', S.cpuLevel); } catch (e) {} }
     }
     if (G.Input.any('pressed', 'a') || G.Input.any('pressed', 'start')) {
       if (m.id === 'sound') { G.setSound(!G.soundOn); G.sfx('ok'); return; }
+      if (m.id === 'challenges') { G.toggleChallenges(); G.sfx('ok'); return; }
+      if (m.id === 'myside') { G.toggleSide(); G.sfx('ok'); return; }
       S.mode = m.id; G.sfx('ok'); goSelect();
     }
   }
@@ -260,10 +274,12 @@
     G.chrome(G.TITLE, W / 2, 34, 3, 'center');
     G.text(G.SUBTITLE, W / 2, 62, G.PAL.beige, { align: 'center', shadow: '#000' });
     MODES.forEach(function (m, i) {
-      var y = 92 + i * 16, on = i === S.titleSel;
+      var y = 80 + i * 13, on = i === S.titleSel;
       var label = m.name;
       if (m.id === 'cpu') label += '  < LV ' + S.cpuLevel + ' >';
       if (m.id === 'sound') label += '  ' + (G.soundOn ? 'ON' : 'OFF');
+      if (m.id === 'challenges') label += '  ' + (G.SETTINGS.challenges ? 'ON' : 'OFF');
+      if (m.id === 'myside') label += '  ' + (G.SETTINGS.side ? 'RIGHT' : 'LEFT');
       if (on) G.rect(60, y - 3, 200, 13, G.PAL.steel);
       G.text(label, W / 2, y, on ? G.PAL.amber : G.PAL.white, { align: 'center', shadow: '#000' });
     });
@@ -392,6 +408,7 @@
     G.Input.poll(dt);
     if (S.screen === 'title') { updateTitle(); drawTitle(); }
     else if (S.screen === 'select') { updateSelect(); if (S.screen === 'select') drawSelect(); }
+    else if (S.screen === 'net') { G.Net.update(dt); if (S.screen === 'net') G.Net.draw(); }
     else { updateMatch(dt); if (S.screen === 'match') drawMatch(); }
     requestAnimationFrame(frame);
   }

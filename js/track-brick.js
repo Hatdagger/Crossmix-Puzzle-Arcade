@@ -218,11 +218,12 @@
       if (c[1] >= HIDDEN) allHidden = false;
     });
     G.sfx && G.sfx('lock', this.opts.side);
+    this.mark('piece');
     var n = this.clearLines();
     if (n > 0) this.scoreClear(n, ts);
     else {
       this.combo = -1;
-      if (ts) this.say(ts === 2 ? 'T-SPIN' : 'MINI T-SPIN', G.PAL.violet);
+      if (ts) { this.say(ts === 2 ? 'T-SPIN' : 'MINI T-SPIN', G.PAL.violet); this.mark('big'); }
       this.landGarbage();
     }
     if (allHidden && n === 0) { this.die(); return; }
@@ -251,6 +252,7 @@
     else if (ts === 1) { atk = n >= 2 ? 1 : 0; label = 'MINI T-SPIN ' + NAMES[n]; }
     else { atk = LINE_ATTACK[n]; label = n >= 4 ? 'QUAD!' : n >= 2 ? NAMES[n] : ''; }
     var difficult = n >= 4 || ts > 0;
+    if (difficult) this.mark('big');
     if (difficult) {
       if (this.b2bOn && this.s.b2b) { atk += 1; label = 'B2B ' + label; }
       this.b2bOn = true;
@@ -261,6 +263,7 @@
       this.say(this.combo + ' COMBO', G.PAL.yellow);
     }
     var empty = this.grid.every(function (r) { return r.every(function (c) { return !c; }); });
+    if (empty) this.mark('big');
     if (empty && this.s.allClear) { atk += 10; this.say('ALL CLEAR!', G.PAL.green); }
     if (label) this.say(label, ts ? G.PAL.violet : G.PAL.cyan);
     G.sfx && G.sfx(n >= 4 || ts ? 'big' : 'clear', this.opts.side);
