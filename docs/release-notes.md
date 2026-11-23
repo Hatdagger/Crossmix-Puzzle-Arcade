@@ -1,6 +1,6 @@
 Climb (Tetris Plus style) joins Brick and Calm.
 
-- Get the 2x2 professor to the floor before the spiked ceiling reaches him. Bricks on his head make him climb.
+- Get the 2x2 professor to the floor before the spiked ceiling reaches him. Bricks fall through him; one that settles in his square makes him climb.
 - Every stage is a scattered pile with a known solution; the first pieces dealt solve it, then pieces turn random.
 - Classic rules: no hold, hard drop, ghost or wall kicks; slow gravity and a slow soft drop.
 - Versus: incoming attacks push garbage rows in from below and lift the professor. Clearing a stage sends 4.

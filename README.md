@@ -26,7 +26,7 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 ## Climb
 
 - A 2x2 professor walks the stack. He turns at walls and at anything in his way, can step down but never up.
-- A brick landing on his head makes him climb on top of it. If he touches the spiked ceiling, you lose.
+- Bricks fall straight through him. Once one settles inside his 2x2 square, he climbs on top of it. If he touches the spiked ceiling, you lose.
 - The ceiling drops a row after 12 bricks, then 10, 9, 8 ... down to every 3. Bricks it touches are destroyed (just that line).
 - Get him to the floor to clear the stage: he drops out, does a little dance, walks off, and the next stage starts with the ceiling reset.
 - Each stage is a scattered pile with a known solution: the first pieces dealt solve it (about 5-10, more on later stages). After that the pieces are random.

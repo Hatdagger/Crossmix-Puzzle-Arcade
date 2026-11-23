@@ -14,7 +14,7 @@
     lockResets: false, tspin: false, b2b: false, combo: false, allClear: false, cancel: true, garbageDelay: true
   };
   var FALL_MS = 700;                 // slow, steady gravity
-  var WALK_MS = 420, PROF_FALL_MS = 90, CLIMB_MS = 110;
+  var WALK_MS = 700, PROF_FALL_MS = 110, CLIMB_MS = 160;
   var DROP_EVERY = [12, 10, 9, 8, 7, 6, 5, 5, 4, 4, 3];   // pieces placed before the ceiling drops again
   var STAGE_CLEAR_UNITS = 4;         // versus: finishing a stage sends this much
   var WIN_MS = 2600;
@@ -125,15 +125,15 @@
   P.level = function () { return 1; };
   P.gravityMs = function () { return FALL_MS / this.speedMul; };
 
-  // The professor and the ceiling are solid to pieces.
+  // The ceiling is solid to pieces. The professor is not: bricks fall straight through him,
+  // and only once one settles inside his 2x2 square does he climb on top of it.
   P.collides = function (type, rot, x, y, grid) {
     grid = grid || this.grid;
-    var sh = B.SHAPES[type][rot], top = this.ceilRow(), pr = this.prof;
+    var sh = B.SHAPES[type][rot], top = this.ceilRow();
     for (var i = 0; i < 4; i++) {
       var cx = x + sh[i][0], cy = y + sh[i][1];
       if (cx < 0 || cx >= COLS || cy >= ROWS || cy < top) return true;
       if (grid[cy][cx]) return true;
-      if (pr && pr.state !== 'win' && cx >= pr.x && cx <= pr.x + 1 && cy >= pr.y && cy <= pr.y + 1) return true;
     }
     return false;
   };
@@ -151,13 +151,7 @@
   P.blocked = function (cx, cy) {
     if (cx < 0 || cx >= COLS || cy >= ROWS) return true;
     if (cy < 0) return false;
-    if (this.grid[cy][cx]) return true;
-    var p = this.piece;
-    if (p && !this.dead) {
-      var sh = B.SHAPES[p.type][p.rot];
-      for (var i = 0; i < 4; i++) if (p.x + sh[i][0] === cx && p.y + sh[i][1] === cy) return true;
-    }
-    return false;
+    return !!this.grid[cy][cx];   // the falling piece doesn't get in his way either
   };
   P.areaFree = function (x, y) { return !this.blocked(x, y) && !this.blocked(x + 1, y) && !this.blocked(x, y + 1) && !this.blocked(x + 1, y + 1); };
   P.onFloor = function () { return this.prof.y + 2 >= ROWS; };
@@ -262,7 +256,6 @@
     cells.forEach(function (c) { if (c[1] >= 0) self.grid[c[1]][c[0]] = p.type; });
     var sp = this.solPlan && this.solIdx >= 0 && this.solPlan[this.solIdx];
     this.solIdx = (sp && sp.type === p.type && canon(cellsOf(sp.type, sp.rot, sp.x, 0)) === canon(cells)) ? this.solIdx + 1 : -1;
-    var onHead = cells.some(function (c) { return c[1] === pr.y - 1 && (c[0] === pr.x || c[0] === pr.x + 1); });
     G.sfx && G.sfx('lock', this.opts.side);
     this.piece = null;
     var n = this.clearLines();
@@ -271,10 +264,8 @@
     this.placedSince++;
     if (this.placedSince >= this.dropEvery()) this.dropCeiling();
     if (this.dead) return;
-    if (pr.state !== 'climb') {
-      if (!this.areaFree(pr.x, pr.y)) this.climb(pr.y);      // the stack shifted into him
-      else if (onHead) this.climb(pr.y - 1);                 // a brick landed on his head
-    }
+    // A brick settled inside his square (or the stack shifted into him): he climbs on top.
+    if (pr.state !== 'climb' && !this.areaFree(pr.x, pr.y)) this.climb(pr.y);
     this.spawn();
   };
 
@@ -373,7 +364,7 @@
       if (canon(cellsOf(sp.type, sp.rot, sp.x, 0)) === canon(cells)) s += 100;
     }
     cells.forEach(function (c) {
-      if ((c[0] === p.x || c[0] === p.x + 1) && c[1] === p.y - 1) s -= 3;   // landing on his head makes him climb
+      if (c[0] >= p.x && c[0] <= p.x + 1 && c[1] >= p.y && c[1] <= p.y + 1) s -= 2;   // settling in his square makes him climb
     });
     return s + lines * 0.8;
   }
