@@ -20,6 +20,21 @@
   try { var raw = JSON.parse(localStorage.getItem('crossmix-net') || '{}'); SET.challenges = !!raw.challenges; SET.side = raw.side ? 1 : 0; } catch (e) {}
   function saveSet() { try { localStorage.setItem('crossmix-net', JSON.stringify(SET)); } catch (e) {} }
   G.SETTINGS = SET;
+
+  // Inside the Crossmix app the app finds (or becomes) the host on the network by itself; the game
+  // just asks it where to connect. Challenges start ON there unless the player turned them off.
+  var APP = typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.core;
+  G.LAN = { role: '', ws: null, join: null };
+  if (APP) {
+    try { if (localStorage.getItem('crossmix-net') == null) SET.challenges = true; } catch (e) { SET.challenges = true; }
+    var pollLan = function () {
+      APP.invoke('lan_state').then(function (st) {
+        var p = String(st || '').split('|');
+        G.LAN = { role: p[0] || '', ws: p[1] || null, join: p[2] || null };
+      }, function () {});
+    };
+    pollLan(); setInterval(pollLan, 1000);
+  }
   G.toggleChallenges = function () { SET.challenges = !SET.challenges; saveSet(); if (A) { if (SET.challenges) connect(); else disconnect(); } };
   G.toggleSide = function () { SET.side = 1 - SET.side; saveSet(); };
 
@@ -46,6 +61,7 @@
 
   // ---------- connection ----------
   function wsUrl() {
+    if (APP) return G.LAN.ws;
     if (location.protocol !== 'http:' && location.protocol !== 'https:') return null;
     if (/github\.io$/.test(location.hostname)) return null;
     return (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
@@ -189,6 +205,11 @@
   // ---------- update ----------
   function update(dt) {
     A.t += dt;
+    // Lost the server (or none yet): keep trying every 2 s, e.g. while another PC takes over hosting.
+    if (SET.challenges && !A.ws && A.net !== 'off') {
+      A.retryT = (A.retryT || 0) - dt;
+      if (A.retryT <= 0) { A.retryT = 2000; connect(); }
+    }
     if (A.bannerT > 0) A.bannerT -= dt;
     var p1 = G.Input.humans[0];
     if (A.menu) { updateMenu(p1); return; }
@@ -316,7 +337,7 @@
     } else G.text('KO ' + A.kos, W / 2, 4, G.PAL.amber, { font: 'small', align: 'center' });
     G.rect(159, HALF_Y, 2, H - HALF_Y, G.PAL.steelLo);
     // status line
-    var status = !SET.challenges ? '' : A.net === 'none' ? 'NO LAN SERVER: SOLO' : A.net === 'connecting' ? 'CONNECTING...' : A.ch ? (A.ch.protect ? 'HALF GARBAGE (' + (PROTECT_PIECES - A.ch.protect.pieces) + ')' : '') : 'CHALLENGES ON';
+    var status = !SET.challenges ? '' : A.net === 'none' ? (APP ? 'LOOKING FOR PLAYERS...' : 'NO LAN SERVER: SOLO') : A.net === 'connecting' ? 'CONNECTING...' : A.ch ? (A.ch.protect ? 'HALF GARBAGE (' + (PROTECT_PIECES - A.ch.protect.pieces) + ')' : '') : 'CHALLENGES ON';
     if (status) G.text(status, mySide * 160 + 80, 214, A.ch && A.ch.protect ? G.PAL.cyan : G.PAL.grey, { font: 'small', align: 'center' });
     // CPU changeover
     if (A.swapT != null && !A.ch) {

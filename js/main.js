@@ -286,6 +286,11 @@
     G.text(MODES[S.titleSel].desc, W / 2, 178, G.PAL.grey, { font: 'small', align: 'center' });
     G.text('A / START SELECT', W / 2, 196, G.PAL.beigeLo, { font: 'small', align: 'center' });
     G.text(G.VERSION + ' PROTOTYPE', W - 4, 214, G.PAL.steelHi, { font: 'small', align: 'right' });
+    // In the app: who's hosting on the network, and where phones/tablets can join from a browser.
+    var L = G.LAN || {};
+    var lan = L.role === 'host' ? 'LAN HOST  PHONES: ' + String(L.join || '').replace(/^http:\/\//, '').replace(/\/$/, '')
+      : L.role === 'client' ? 'LAN: JOINED ' + (L.join || '') : L.role === 'searching' ? 'LAN: LOOKING...' : '';
+    if (lan) G.text(lan, 4, 214, G.PAL.steelHi, { font: 'small' });
   }
   function drawSelect() {
     bg();

@@ -217,12 +217,35 @@ function finishMatch(m, winner, why) {
 }
 
 // ---------- start ----------
-server.listen(PORT, function () {
+// Run directly (node tools/lan-server.js) it prints the addresses to open. The Crossmix app
+// starts it itself through start()/stop() and finds it on the network on its own.
+function printAddresses(port) {
   console.log('Crossmix LAN server is running. On each PC on this network, open:');
   var nets = os.networkInterfaces();
   Object.keys(nets).forEach(function (k) {
-    nets[k].forEach(function (n) { if (n.family === 'IPv4' && !n.internal) console.log('   http://' + n.address + ':' + PORT + '/'); });
+    nets[k].forEach(function (n) { if (n.family === 'IPv4' && !n.internal) console.log('   http://' + n.address + ':' + port + '/'); });
   });
-  console.log('   (on this PC: http://localhost:' + PORT + '/)');
+  console.log('   (on this PC: http://localhost:' + port + '/)');
   console.log('Then set CHALLENGES ON and play SURVIVAL. Close this window to stop the server.');
-});
+}
+if (require.main === module) {
+  server.listen(PORT, function () { printAddresses(PORT); });
+} else {
+  module.exports = {
+    // Listen on the first free port from `port` up; cb(err, port).
+    start: function (port, root, cb) {
+      if (root) ROOT = root;
+      var tries = 0;
+      function attempt(p) {
+        server.once('error', function (e) { if (e.code === 'EADDRINUSE' && ++tries < 20) attempt(p + 1); else cb(e); });
+        server.listen(p, function () { server.removeAllListeners('error'); cb(null, p); });
+      }
+      attempt(port);
+    },
+    stop: function () {
+      clients.slice().forEach(function (c) { try { c.sock.destroy(); } catch (e) {} });
+      try { server.close(); } catch (e) {}
+    },
+    players: function () { return clients.length; }
+  };
+}
