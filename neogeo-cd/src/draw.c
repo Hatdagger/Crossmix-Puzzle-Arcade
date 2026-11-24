@@ -3,6 +3,11 @@
 #include "tiles.h"
 
 WORD scr[SCR_H][SCR_W];
+WORD *const cv_row[SCR_H] = {
+    scr[0], scr[1], scr[2], scr[3], scr[4], scr[5], scr[6], scr[7], scr[8], scr[9],
+    scr[10], scr[11], scr[12], scr[13], scr[14], scr[15], scr[16], scr[17], scr[18], scr[19],
+    scr[20], scr[21], scr[22], scr[23], scr[24], scr[25], scr[26], scr[27]
+};
 
 BYTE xm_think = 1;
 BYTE xm_flush = 3;
@@ -19,13 +24,13 @@ void cv_fill(int x, int y, int w, int h, WORD word)
         /* two tiles at a time */
         DWORD dw = ((DWORD)word << 16) | word, *q;
         for (j = 0; j < h; j++) {
-            q = (DWORD *)&scr[y + j][x];
+            q = (DWORD *)(cv_row[y + j] + x);
             for (i = w >> 1; i > 0; i--) *q++ = dw;
         }
         return;
     }
     for (j = 0; j < h; j++) {
-        p = &scr[y + j][x];
+        p = cv_row[y + j] + x;
         for (i = w; i > 0; i--) *p++ = word;
     }
 }
@@ -71,7 +76,7 @@ void cv_cell16(int x, int y, BYTE pal, WORD base, BYTE lit)
     WORD w = TW(pal, TB4(base)), *p;
     (void)lit;
     if (x >= 0 && y >= 0 && x < SCR_W - 1 && y < SCR_H - 1) {
-        p = &scr[y][x];
+        p = cv_row[y] + x;
         p[0] = w; p[1] = (WORD)(w + 1); p[SCR_W] = (WORD)(w + 2); p[SCR_W + 1] = (WORD)(w + 3);
         return;
     }

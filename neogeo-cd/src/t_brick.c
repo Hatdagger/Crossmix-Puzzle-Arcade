@@ -941,7 +941,7 @@ static void cpu_weapons(Track *t, WORD dt)
     if (!B->invn) return;
     B->cpuT = (WORD)(500 + (9 - B->cpu.level) * 180);
     w = B->inv[0]; maxH = stack_h(t); holes = stack_holes(t);
-    B->holdT = (WORD)(B->holdT + 500);
+    B->holdT = (WORD)(B->holdT + dt);
     switch (w) {
     case W_WIPE: use = maxH > 13 ? 1 : 0; break;
     case W_REMOVE: use = maxH > 3 ? 1 : 0; break;
@@ -1101,11 +1101,20 @@ static BYTE pal_of(BYTE c)
     c = cell_type(c);
     return (BYTE)(c + 1);     /* I=2 pink .. Z=8 red, garbage=9 grey */
 }
-static WORD cell_word(BYTE c)
+static WORD cell_word_calc(BYTE c)
 {
+    if (!c) return TW(PAL_STEEL, TB3(T_EMPTY));
     if (c & BC_LETTER) return TW(pal_of(c), TB3(T_LETTER + (c & 15) - 1));
     if (c & BC_CRYSTAL) return TW(pal_of(c), TB3(T_CRYSTAL));
     return TW(pal_of(c), TB3(T_BRICK));
+}
+/* every cell's tile word, worked out once */
+static WORD CELLW[48];
+static BYTE cellw_ready;
+static WORD cell_word(BYTE c)
+{
+    if (!cellw_ready) { BYTE k; for (k = 0; k < 48; k++) CELLW[k] = cell_word_calc(k); cellw_ready = 1; }
+    return CELLW[c & 47];
 }
 
 /* a small piece for HOLD / NEXT: 8 px bricks; I stands upright to fit 3 columns */
@@ -1126,10 +1135,11 @@ void brick_draw(Track *t, int ox)
     if (t->kind == TK_CLIMB) { draw_climb(t, ox); return; }
     cv_frame(fx, FY, COLS, ROWS - HIDDEN, PAL_STEEL);
     for (y = HIDDEN; y < ROWS; y++) {
-        WORD *p = &scr[FY + y - HIDDEN][fx];
+        WORD *p = cv_row[FY + y - HIDDEN] + fx;
         const BYTE *g = B->grid[y];
         if (B->clearT && (B->clearRows & (1UL << y))) { for (x = 0; x < COLS; x++) *p++ = TW(PAL_WHITE, TB3(T_SOLID)); continue; }
-        for (x = 0; x < COLS; x++) { c = *g++; *p++ = c ? cell_word(c) : TW(PAL_STEEL, TB3(T_EMPTY)); }
+        cell_word(0);
+        for (x = 0; x < COLS; x++) *p++ = CELLW[*g++ & 47];
     }
     if (!t->dead && B->hasPiece) {
         SBYTE cs[4][2];
