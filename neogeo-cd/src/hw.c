@@ -97,7 +97,7 @@ void game_mark(BYTE k)
 }
 
 /* CPU players search until this many scanlines of the frame are used; the rest is for drawing */
-#define THINK_LINES 150
+#define THINK_LINES 80
 BYTE xm_time_ok(void)
 {
     if (++xm_units > 400) return 0;           /* safety net if the line counter misbehaves */
