@@ -27,6 +27,9 @@ static DWORD seedMix = 0x1234567UL;
 static BYTE bot[2];               /* a CPU plays a human's board (attract mode, PC harness) */
 static BYTE demo;                 /* attract mode: CPU vs CPU until a button is pressed */
 static DWORD idleMs;
+static WORD drawKey = 0xffff;      /* title / select: redraw only when this changes */
+static BYTE demoNo;
+static DWORD demoMs;
 
 WORD frames_now(void) { return fcount; }
 
@@ -180,17 +183,21 @@ static Pad *pad_of(int i) { return human[i] && !bot[i] ? &hp[i] : &cpad[i]; }
 static void go_title(void)
 {
     if (demo) { demo = 0; bot[0] = 0; }
-    screen = SC_TITLE; menu = MN_NONE; idleMs = 0; game_music(2);
+    screen = SC_TITLE; menu = MN_NONE; idleMs = 0; drawKey = 0xffff; game_music(2);
 }
 
 /* attract mode: after a while on the title, two CPUs play a round */
 static void start_demo(void)
 {
-    demo = 1; mode = M_CPU;
+    BYTE keepPick0 = pick[0], keepPick1 = pick[1];
+    demo = 1; mode = M_CPU; demoMs = 0;
     bot[0] = (BYTE)(3 + rnd_n(4));
-    cpuLevel = cpuLevel ? cpuLevel : 3;
-    pick[0] = rnd_n(TK_COUNT); pick[1] = RANDOM_PICK;
+    /* every puzzle gets its turn: pairs 0-1, 2-3, ... then shifted */
+    pick[0] = (BYTE)((demoNo * 2 + demoNo / 5) % TK_COUNT);
+    pick[1] = (BYTE)((demoNo * 2 + 1 + demoNo / 5) % TK_COUNT);
+    demoNo++;
     start_match();
+    pick[0] = keepPick0; pick[1] = keepPick1;
     level[1] = (BYTE)(3 + rnd_n(4));
     make_track(1, 0);
 }
@@ -198,7 +205,7 @@ static void start_demo(void)
 static void go_select(void)
 {
     int i, k;
-    screen = SC_SELECT; menu = MN_NONE;
+    screen = SC_SELECT; menu = MN_NONE; drawKey = 0xffff;
     for (i = 0; i < 2; i++) {
         for (k = 0; k < NLIST; k++) if ((k == TK_COUNT ? RANDOM_PICK : k) == pick[i]) selCur[i] = (BYTE)k;
         ready[i] = 0;
@@ -222,6 +229,11 @@ static void title_frame(WORD dt)
         if (any_repeat(B_LEFT) && cpuLevel > 1) { cpuLevel--; sfx0(S_MENU); }
     }
     if (any_pressed(B_A) || any_pressed(B_START)) { mode = titleSel; sfx0(S_OK); go_select(); return; }
+    {
+        WORD key = (WORD)(0x1000 | titleSel | (cpuLevel << 4));
+        if (key == drawKey) return;
+        drawKey = key;
+    }
     cv_clear(0, 0, SCR_W, SCR_H);
     cv_textc(0, 40, 4, PAL_PINK, "C R O S S M I X");
     cv_textc(0, 40, 6, PAL_CYAN, "PUZZLE ARCADE");
@@ -298,6 +310,11 @@ static void select_frame(void)
         }
         if (ready[0] && (ready[1] || (mode == M_SIDE && !joined[1]))) { start_match(); return; }
         if (mode == M_SIDE && ready[0] && !joined[1] && PAD_PRESSED(&hp[0], B_START)) { start_match(); return; }
+    }
+    {
+        WORD key = (WORD)(0x2000 | selCur[0] | (selCur[1] << 4) | (ready[0] << 8) | (ready[1] << 9) | (joined[1] << 10) | (selFor << 11));
+        if (key == drawKey) return;
+        drawKey = key;
     }
     cv_clear(0, 0, SCR_W, SCR_H);
     cv_textc(0, 40, 0, PAL_WHITE, "PICK YOUR PUZZLE");
@@ -378,6 +395,7 @@ static void match_update(WORD dt)
     }
     if (phase == PH_OVER) return;
     if (phase == PH_SWAP) {
+        xm_think = 1;
         trk_update(a, pad_of(0), dt);
         link();
         if (a->dead) { phase = PH_OVER; open_menu(MN_OVER, 0); return; }
@@ -387,7 +405,8 @@ static void match_update(WORD dt)
         return;
     }
     /* play */
-    for (i = 0; i < 2; i++) if (active[i]) trk_update(&trk[i], pad_of(i), dt);
+    for (i = 0; i < 2; i++) if (active[i]) { xm_think = (BYTE)(((fcount + i) & 1) || !active[i ^ 1]); trk_update(&trk[i], pad_of(i), dt); }
+    xm_think = 1;
     link();
     if (swapPending) { swapPending = 0; swap_games(); }
     if (mode == M_SIDE) {
@@ -508,7 +527,8 @@ void game_frame(WORD in1, WORD in2, WORD dt)
     default:
         if (demo) {
             /* any button ends the demo; so does the end of its round */
-            if (((hp[0].cur & ~hp[0].prev) | (hp[1].cur & ~hp[1].prev)) || phase == PH_ROUNDEND || phase == PH_OVER) { go_title(); break; }
+            demoMs += dt;
+            if (((hp[0].cur & ~hp[0].prev) | (hp[1].cur & ~hp[1].prev)) || phase == PH_ROUNDEND || phase == PH_OVER || demoMs > 30000UL) { go_title(); break; }
             menu = MN_NONE;
         }
         match_update(dt);

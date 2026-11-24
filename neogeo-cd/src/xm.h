@@ -199,7 +199,9 @@ extern WORD scr[SCR_H][SCR_W];      /* what the screen should show this frame */
 #define TW(pal, tile) ((WORD)(((WORD)(pal) << 12) | (tile)))
 #define BLANK_W TW(PAL_WHITE, TB3(' '))
 void cv_clear(int x, int y, int w, int h);
-void cv_put(int x, int y, WORD w);
+/* cv_put is a macro: a function call per tile was too slow on the 68000 */
+#define cv_put(x, y, w) do { int cvx_ = (x), cvy_ = (y); if ((unsigned)cvx_ < SCR_W && (unsigned)cvy_ < SCR_H) scr[cvy_][cvx_] = (w); } while (0)
+extern BYTE xm_think;               /* CPU players may search this frame (the game alternates the two sides) */
 void cv_fill(int x, int y, int w, int h, WORD word);
 void cv_text(int x, int y, BYTE pal, const char *s);
 void cv_textc(int x, int w, int y, BYTE pal, const char *s);

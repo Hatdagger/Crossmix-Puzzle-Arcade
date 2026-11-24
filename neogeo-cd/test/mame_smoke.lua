@@ -6,8 +6,8 @@ local count = tonumber(os.getenv("XM_FRAME_ADDR") or "0") or 0
 local last_d, last_c = 0, 0
 local function tick()
   frames = frames + 1
-  if frames % 600 == 0 then
-    manager.machine.video:snapshot()
+  if frames % 300 == 0 then
+    if frames % 600 == 0 then manager.machine.video:snapshot() end
     local cpu = manager.machine.devices[":maincpu"]
     if cpu and drop > 0 then
       local sp = cpu.spaces["program"]
@@ -16,7 +16,7 @@ local function tick()
       last_d, last_c = d, c
     end
   end
-  if frames >= 9000 then manager.machine:exit() end
+  if frames >= 15000 then manager.machine:exit() end
 end
 if emu.add_machine_frame_notifier then
   XM_SUB = emu.add_machine_frame_notifier(tick)

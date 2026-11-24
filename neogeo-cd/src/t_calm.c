@@ -425,7 +425,7 @@ void calm_cpu(Track *t, Pad *pad, WORD dt)
     }
     /* plan a few source cells per frame while thinking */
     if (!k->n && !k->planning) { k->planning = 1; k->pcell = 0; k->count = 0; k->bestSc = -1; }
-    if (k->planning) {
+    if (k->planning && xm_think) {
         for (i = 0; i < 2 && k->pcell < ROWS * COLS; i++, k->pcell++) {
             r = k->pcell / COLS; c = k->pcell % COLS;
             for (tg = 0; tg < COLS; tg++) if (tg != c && move_matches(C->grid, r, c, 1, tg)) cpu_add(t, (BYTE)r, (BYTE)c, 1, (BYTE)tg);

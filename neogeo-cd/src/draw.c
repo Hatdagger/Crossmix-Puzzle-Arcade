@@ -4,16 +4,20 @@
 
 WORD scr[SCR_H][SCR_W];
 
-void cv_put(int x, int y, WORD w)
-{
-    if (x < 0 || x >= SCR_W || y < 0 || y >= SCR_H) return;
-    scr[y][x] = w;
-}
+BYTE xm_think = 1;
 
 void cv_fill(int x, int y, int w, int h, WORD word)
 {
     int i, j;
-    for (j = 0; j < h; j++) for (i = 0; i < w; i++) cv_put(x + i, y + j, word);
+    WORD *p;
+    if (x < 0) { w += x; x = 0; }
+    if (y < 0) { h += y; y = 0; }
+    if (x + w > SCR_W) w = SCR_W - x;
+    if (y + h > SCR_H) h = SCR_H - y;
+    for (j = 0; j < h; j++) {
+        p = &scr[y + j][x];
+        for (i = w; i > 0; i--) *p++ = word;
+    }
 }
 
 void cv_clear(int x, int y, int w, int h) { cv_fill(x, y, w, h, BLANK_W); }
@@ -54,12 +58,17 @@ const char *cv_num(DWORD v)
 
 void cv_cell16(int x, int y, BYTE pal, WORD base, BYTE lit)
 {
-    WORD b = TB4(base);
+    WORD w = TW(pal, TB4(base)), *p;
     (void)lit;
-    cv_put(x, y, TW(pal, b));
-    cv_put(x + 1, y, TW(pal, b + 1));
-    cv_put(x, y + 1, TW(pal, b + 2));
-    cv_put(x + 1, y + 1, TW(pal, b + 3));
+    if (x >= 0 && y >= 0 && x < SCR_W - 1 && y < SCR_H - 1) {
+        p = &scr[y][x];
+        p[0] = w; p[1] = (WORD)(w + 1); p[SCR_W] = (WORD)(w + 2); p[SCR_W + 1] = (WORD)(w + 3);
+        return;
+    }
+    cv_put(x, y, w);
+    cv_put(x + 1, y, (WORD)(w + 1));
+    cv_put(x, y + 1, (WORD)(w + 2));
+    cv_put(x + 1, y + 1, (WORD)(w + 3));
 }
 
 void cv_frame(int x, int y, int w, int h, BYTE pal)

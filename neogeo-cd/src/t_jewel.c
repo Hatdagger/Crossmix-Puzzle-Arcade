@@ -335,7 +335,7 @@ void jewel_cpu(Track *t, Pad *pad, WORD dt)
         if (J->state != ST_FALL || !J->hasPiece) { pad_feed(pad, 0, dt); return; }
     }
     if (!k->pass) { k->pass = 1; k->cand = 0; k->have = 0; }
-    if (k->pass == 1) {
+    if (k->pass == 1 && xm_think) {
         cpu_eval_one(t);
         if (k->cand >= 18) {
             k->pass = 2;

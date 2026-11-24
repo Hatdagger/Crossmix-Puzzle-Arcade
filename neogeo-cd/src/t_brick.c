@@ -862,7 +862,7 @@ void brick_cpu(Track *t, Pad *pad, WORD dt)
         c->since = 0; c->fails = 0;
         c->think = 1; c->rotNow = 0; c->haveBest = 0; c->plan = 0;
     }
-    if (c->think) cpu_search_step(t);
+    if (c->think && xm_think) cpu_search_step(t);
     if (c->tap) { c->tap = 0; pad_feed(pad, 0, dt); return; }
     if (c->wait > dt) c->wait = (WORD)(c->wait - dt); else c->wait = 0;
     if (c->wait || !c->plan) { pad_feed(pad, 0, dt); return; }

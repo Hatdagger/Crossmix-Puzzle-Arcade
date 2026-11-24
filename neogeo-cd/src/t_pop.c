@@ -73,22 +73,33 @@ static void new_shot(WORD tick, Shot *s)
     s->vx = AIM_VX[tick]; s->vy = AIM_VY[tick];
 }
 
-/* one sub-step of `step` px; returns 1 when the bubble touches the ceiling or another bubble */
-static BYTE step_shot(Grid g, int top, Shot *s, int step)
+/* lowest row with a bubble, kept up to date by the callers (-1: empty) */
+static int low_row(Grid g)
 {
-    int gy, r0, r, c, dx, dy, x;
+    int r, c;
+    for (r = MAXR - 1; r >= 0; r--) for (c = 0; c < COLS; c++) if (g[r][c] >= 0) return r;
+    return -1;
+}
+
+/* one sub-step of `step` px; returns 1 when the bubble touches the ceiling or another bubble.
+   low = lowest occupied row: below it nothing can be hit, so most steps cost almost nothing */
+static BYTE step_shot(Grid g, int top, Shot *s, int step, int low)
+{
+    int gy, r0, r, c, c0, dx, dy, x;
     s->x += s->vx * step; s->y += s->vy * step;
     if (s->x < ((SDWORD)R << 8)) { s->x = ((SDWORD)(2 * R) << 8) - s->x; s->vx = -s->vx; }
     if (s->x > ((SDWORD)(W - R) << 8)) { s->x = ((SDWORD)(2 * (W - R)) << 8) - s->x; s->vx = -s->vx; }
     gy = (int)(s->y >> 8) - top; x = (int)(s->x >> 8);
     if (gy <= R) return 1;
+    if (gy > R + (low + 1) * RH + D) return 0;
     r0 = (gy - R + RH / 2) / RH;
     for (r = r0 - 1; r <= r0 + 1; r++) {
         if (r < 0 || r >= MAXR) continue;
-        for (c = 0; c < row_len(r); c++) {
-            if (g[r][c] < 0) continue;
+        c0 = (x - ((r & 1) ? R : 0)) / D;
+        for (c = c0 - 1; c <= c0 + 1; c++) {
+            if (c < 0 || c >= row_len(r) || g[r][c] < 0) continue;
             dx = cell_x(r, c) - x; dy = cell_y(r) - gy;
-            if (dx * dx + dy * dy < (D - 2) * (D - 2)) return 1;
+            if (dx > -(D - 1) && dx < D - 1 && dy > -(D - 1) && dy < D - 1 && dx * dx + dy * dy < (D - 2) * (D - 2)) return 1;
         }
     }
     return 0;
@@ -361,12 +372,12 @@ static void aim(Track *t, Pad *pad, WORD dt)
 static void fly(Track *t, WORD dt)
 {
     Shot s;
-    int top = top_px(t);
+    int top = top_px(t), low = low_row(P->grid);
     s.x = P->sx; s.y = P->sy; s.vx = P->svx; s.vy = P->svy;
     P->dist = (WORD)(P->dist + dt * SPEED_Q8);
     while (P->dist >= (STEP << 8)) {
         P->dist = (WORD)(P->dist - (STEP << 8));
-        if (step_shot(P->grid, top, &s, STEP)) { P->sx = s.x; P->sy = s.y; land(t); return; }
+        if (step_shot(P->grid, top, &s, STEP, low)) { P->sx = s.x; P->sy = s.y; land(t); return; }
     }
     P->sx = s.x; P->sy = s.y; P->svx = s.vx; P->svy = s.vy;
 }
@@ -420,7 +431,8 @@ static SDWORD eval_shot(Track *t, WORD tick, BYTE k)
     SBYTE nb[6][2];
     SDWORD sc = 0;
     new_shot(tick, &s);
-    for (i = 0; i < 120; i++) if (step_shot(P->grid, top, &s, 6)) break;
+    kk = low_row(P->grid);
+    for (i = 0; i < 120; i++) if (step_shot(P->grid, top, &s, 6, kk)) break;
     snap(P->grid, top, &s, &r, &c);
     for (i = 0; i < MAXR; i++) for (kk = 0; kk < COLS; kk++) g[i][kk] = P->grid[i][kk];
     n = resolve(g, r, c, (SBYTE)k, mark, &greys);
@@ -461,7 +473,7 @@ void pop_cpu(Track *t, Pad *pad, WORD dt)
         k->tk = (WORD)((P->shots * 7) % k->every); k->nt = 0; k->haveSwap = 0; k->phase = 1;
     }
     if (k->phase == 1) {
-        for (n = 0; n < 1 && k->tk <= TICKS; n++, k->tk = (WORD)(k->tk + k->every)) {
+        for (n = 0; n < 1 && k->tk <= TICKS && xm_think; n++, k->tk = (WORD)(k->tk + k->every)) {
             keep(k, eval_shot(t, k->tk, P->cur), k->tk);
             if (k->level >= 4 && P->next != P->cur) {
                 SDWORD s2 = eval_shot(t, k->tk, P->next);
@@ -520,10 +532,11 @@ void pop_draw(Track *t, int ox)
             if (!P->dotValid || P->dotTick != P->tick || P->dotShots != P->shots || P->dotDrop != P->drop) {
                 Shot s;
                 int top = top_px(t);
+                int low = low_row(P->grid);
                 P->dotN = 0; P->dotTick = P->tick; P->dotShots = P->shots; P->dotDrop = P->drop; P->dotValid = 1;
                 new_shot(P->tick, &s);
                 for (i = 0; i < 100 && P->dotN < 48; i++) {
-                    if (step_shot(P->grid, top, &s, 4)) break;
+                    if (step_shot(P->grid, top, &s, 4, low)) break;
                     if ((i & 1) != 1) continue;
                     P->dotX[P->dotN] = (BYTE)((int)(s.x >> 8) / 8); P->dotY[P->dotN] = (BYTE)((int)(s.y >> 8) / 8); P->dotN++;
                 }

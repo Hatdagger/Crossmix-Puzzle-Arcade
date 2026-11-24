@@ -298,6 +298,15 @@ static void try_plan(Track *t, const BYTE *cols, BYTE n, BYTE tmask)
     WORD units = 0;
     SDWORD sc;
     BYTE hadMove = 0;
+    /* cheap checks first: grab-grab needs the same colour at both column bottoms */
+    if (n == 3) {
+        SBYTE k1, k3;
+        if (!bottom_run(G->grid, cols[0], &k1) || !bottom_run(G->grid, cols[1], &k3) || k1 != k3) return;
+        if (G->hn && k1 != (SBYTE)G->hk) return;
+    } else if (n == 2) {
+        SBYTE k1;
+        if (!bottom_run(G->grid, cols[0], &k1) || (G->hn && k1 != (SBYTE)G->hk)) return;
+    }
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) g[r][c] = G->grid[r][c];
     for (i = 0; i < n; i++) {
         if (tmask & (1 << i)) { if (!throw_to(g, cols[i], &hk, &hn, moved)) return; hadMove = 1; }
@@ -343,7 +352,7 @@ void grab_cpu(Track *t, Pad *pad, WORD dt)
     if (G->state != ST_PLAY) { pad_feed(pad, 0, dt); return; }
     if (k->tap) { k->tap = 0; pad_feed(pad, 0, dt); return; }
     if (k->n == 1) {           /* planning */
-        cpu_plan_step(t);
+        if (xm_think) cpu_plan_step(t);
         if (k->c2 >= COLS) {
             k->n = 0;
             if (k->have) {

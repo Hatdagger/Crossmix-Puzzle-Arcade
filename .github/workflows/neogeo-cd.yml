@@ -105,12 +105,14 @@ jobs:
           $env:XM_FRAME_ADDR = Addr "DAT_frameCounter"
           Write-Host "droppedFrames at $env:XM_DROP_ADDR, frameCounter at $env:XM_FRAME_ADDR"
           New-Item -ItemType Directory -Force -Path snaps | Out-Null
-          $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 400 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz -cdrom roms\neocdz\Crossmix.chd"
+          $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 600 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz -cdrom roms\neocdz\Crossmix.chd"
           Write-Host "mame64.exe $margs"
           $p = Start-Process -FilePath .\mame64.exe -ArgumentList $margs -NoNewWindow -Wait -PassThru -RedirectStandardOutput mame_out.txt -RedirectStandardError mame_err.txt
           Get-Content mame_out.txt | Select-Object -Last 40
           Get-Content mame_err.txt | Select-Object -Last 20
           Get-ChildItem -Recurse snaps | Select-Object FullName, Length
+          # the snapshots, readable from the log as well
+          Get-ChildItem snaps -Filter *.png | Sort-Object Name | ForEach-Object { Write-Host ("XMSNAP " + $_.Name + " " + [Convert]::ToBase64String([IO.File]::ReadAllBytes($_.FullName))) }
       - uses: actions/upload-artifact@v4
         if: always()
         with:

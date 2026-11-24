@@ -44,7 +44,9 @@ static int play(BYTE ka, BYTE kb, DWORD seed, BYTE la, BYTE lb, DWORD *ms, WORD 
     memset(&pa, 0, sizeof pa); memset(&pb, 0, sizeof pb);
     while (!A.dead && !Bt.dead && t < 600000UL) {
         dt = (WORD)((t / 17) % 3 == 2 ? 16 : 17);
+        xm_think = (BYTE)((t / 17) & 1);
         trk_update(&A, &pa, dt);
+        xm_think = (BYTE)(((t / 17) + 1) & 1);
         trk_update(&Bt, &pb, dt);
         xfer(&A, &Bt); xfer(&Bt, &A);
         /* drawing runs too, to catch out-of-range writes */

@@ -89,14 +89,15 @@ void game_music(BYTE track)
 /* ---------------------------------------------------------------- fix layer */
 static void flush(void)
 {
-    int x, y;
-    WORD w;
-    for (x = 0; x < SCR_W; x++) for (y = 0; y < SCR_H; y++) {
-        w = scr[y][x];
-        if (w != sent[y][x]) {
-            sent[y][x] = w;
-            SC234Put(0x7000 + (x << 5) + y + 2, w);
+    WORD *s = &scr[0][0], *d = &sent[0][0], *end = s + SCR_W * SCR_H, w, addr;
+    WORD x = 0, y = 2;
+    for (; s < end; s++, d++) {
+        if (*s != *d) {
+            w = *s; *d = w;
+            addr = (WORD)(0x7000 + (x << 5) + y);
+            SC234Put(addr, w);
         }
+        if (++x == SCR_W) { x = 0; y++; }
     }
 }
 

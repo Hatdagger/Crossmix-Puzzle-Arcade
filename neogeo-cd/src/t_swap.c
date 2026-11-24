@@ -535,7 +535,7 @@ void swap_cpu(Track *t, Pad *pad, WORD dt)
     if (k->hold) { k->hold = k->hold > dt ? (WORD)(k->hold - dt) : 0; pad_feed(pad, B_C, dt); return; }
     if (k->tap) { k->tap = 0; pad_feed(pad, 0, dt); return; }
     if (k->planning) {
-        for (i = 0; i < 2 && k->prow < ROWS; i++) {
+        for (i = 0; i < 2 && k->prow < ROWS && xm_think; i++) {
             cpu_plan_cell(t, k->prow, k->pcol);
             if (++k->pcol >= COLS) { k->pcol = 0; k->prow++; }
         }

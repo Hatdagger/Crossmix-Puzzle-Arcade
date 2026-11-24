@@ -401,7 +401,7 @@ void nom_cpu(Track *t, Pad *pad, WORD dt)
         if (N->state != ST_FALL || !N->hasPiece) { pad_feed(pad, 0, dt); return; }
     }
     if (k->cand == 0xff) { k->cand = 0; k->have = 0; k->turns = 0; }
-    if (k->cand < COLS * 4) {
+    if (k->cand < COLS * 4 && xm_think) {
         cpu_eval_one(t);
         if (k->cand >= COLS * 4) { if (!k->have) { k->bestC = N->pc; k->bestRot = N->prot; } k->c = k->bestC; k->rot = k->bestRot; }
     }
