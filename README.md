@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.8.1
+# Crossmix Puzzle Arcade — prototype v0.9.0
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -17,7 +17,7 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 | **Grab** | Magical Drop: balls hang from the ceiling and a new row pushes down every few seconds (faster over time; the PUSH bar shows when). Move the grabber left/right; A, C or Down grabs the lowest run of one colour from the column above (keep grabbing more of the same colour), B, D or Up throws them back up under any column. 3+ of a colour in a column clears, plus every ball of that colour touching them; balls below move up and can chain. Clearing again within 1.5 s of the last clear is a combo. Takes units as extra rows pushed in from the top (1.75 rows per unit) | In v0.6 |
 | **Nom Nom! Pets** | Baku Baku: pairs of blocks fall (A/B turn the pair, D or Up drops). Each block is a pet's head or a food: dog + bone, cat + fish, bunny + carrot, mouse + cheese. A head touching its own food eats that food and all matching food connected to it. A rare coin clears every block of the kind it lands on. Blocks that fall afterwards can chain. Heads get a little rarer every 30 s. Takes units as wrapped food dropped on top (5 per unit); a wrapped block can't be eaten until something next to it is eaten | In v0.7 |
 | **Arsenal** | Battle Blocks X, on the Brick engine (no hold, 1 next piece, short lock, no T-spin/combo/all-clear bonuses, no cancelling). Every single-line clear turns a random brick into a weapon letter; clearing its row collects it (one copy per line in that clear) into 8 slots, used front first. **C** fires the front weapon at player 1, **D** at player 2 (on the left side C is you), **Select** throws it away, **Up** hard drops. A weapon that can't work on the opponent's puzzle has a red X: hold it or throw it. Arsenal vs Arsenal sends no garbage; in mixed matches 2/3/4 lines send 0/1/2 | In v0.8 |
-| Power Brick | Tetris Battle Gaiden, Brick engine | Planned |
+| **Power Brick** | Tetris Battle Gaiden, on the Brick engine (no hold, ghost, hard drop, wall kicks or 7-bag; 5 previews, T-spins, cancelling kept). About 1 piece in 4 carries a pink crystal. Clearing lines fills the power meter: 1 point per line, 3 more per crystal cleared; 4 points = 1 star, up to 5. **C** casts the power for your stars and spends them all: 1 SHAKE (clear your bottom 3 rows), 2 SHIELD (blocks the next attack), 3 FOG (hides the top half of their field for 5 s), 4 HANDS (their left/right swapped for 5 s), 5 RUSH (their game at double speed for 6 s). Sends 2/3/4 lines = 1/2/4, T-spins 2 per line | In v0.9 |
 
 ## Modes
 
@@ -45,7 +45,7 @@ Survival can be played over your home network, with other players dropping in to
 **How challenges work:**
 - You play Survival against CPUs. Whenever two players with challenges on are free, the server matches them. If more people are waiting, the one waiting longest gets the next open spot; the winner of the last challenge goes first.
 - The host keeps their board and carries on. The challenger's board clears and counts in.
-- The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. Pop: dropping 4+ bubbles at once or an all clear. Grab: a chain, 6+ balls at once or a 3x combo. Nom Nom! Pets: a chain, 7+ eaten at once or a coin clearing 6+. (Calm counts moves, Swap counts swaps, Pop counts shots and Grab counts throws instead of pieces.)
+- The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick, Power Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. Pop: dropping 4+ bubbles at once or an all clear. Grab: a chain, 6+ balls at once or a 3x combo. Nom Nom! Pets: a chain, 7+ eaten at once or a coin clearing 6+. (Calm counts moves, Swap counts swaps, Pop counts shots and Grab counts throws instead of pieces.)
 - A challenge is one round. The loser can press A to **run it back**; if the winner accepts, round 2 is played (the loser's board resets). If that makes it 1-1, round 3 starts with both boards cleared.
 - **Winner stays on** and goes back to fighting CPUs until the next challenger. The loser starts a fresh Survival.
 - No pausing during a challenge. Leaving (closing the page) forfeits. If the server goes away, you're back to CPUs and the game reconnects by itself.
@@ -103,6 +103,8 @@ Weapons work on every puzzle, not just brick fields:
 | Flip Field (F) | The target's play field is shown upside down for 8 s (text and panels stay upright) |
 | Swap (S) | The two players trade games, boards and all (local play only) |
 
+Power Brick's Fog, Hands and Rush work on every puzzle too (they act on the screen or the controls). Empty Inventory empties a Power Brick player's meter and shield.
+
 ## How the attack works
 
 - **Brick sends:** 2/3/4 lines = 1/2/4 units, T-spins 2 per line, +1 back-to-back, combo bonus, all clear +10. Incoming garbage waits 1 s (amber bar), then lands (flashing red) the next time you lock a brick without clearing.
@@ -131,4 +133,4 @@ docs/             design notes
 ## Next
 
 1. Neo Geo CD build (NeoCore, from SPACBRACK's `tetris` branch and the Calm Combo port), built by GitHub Actions into BIN/CUE and CHD.
-2. A better Climb CPU, then Power Brick and Arsenal on the Brick engine.
+2. A better Climb CPU.

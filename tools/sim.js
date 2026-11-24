@@ -4,7 +4,7 @@ globalThis.window = { addEventListener: function () {} };
 globalThis.navigator = {};
 globalThis.localStorage = { getItem: function () { return null; }, setItem: function () {} };
 var path = require('path'), root = path.join(__dirname, '..', 'js');
-['gfx.js', 'input.js', 'track.js', 'track-brick.js', 'track-calm.js', 'track-climb.js', 'track-jewel.js', 'track-swap.js', 'track-pop.js', 'track-grab.js', 'track-nomnom.js', 'track-arsenal.js'].forEach(function (f) { require(path.join(root, f)); });
+['gfx.js', 'input.js', 'track.js', 'track-brick.js', 'track-calm.js', 'track-climb.js', 'track-jewel.js', 'track-swap.js', 'track-pop.js', 'track-grab.js', 'track-nomnom.js', 'track-arsenal.js', 'track-power.js'].forEach(function (f) { require(path.join(root, f)); });
 var G = globalThis.G;
 var games = +process.argv[2] || 10, la = +process.argv[3] || 5, lb = +process.argv[4] || la;
 function play(idA, idB, seed) {

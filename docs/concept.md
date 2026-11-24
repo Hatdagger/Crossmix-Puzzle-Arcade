@@ -17,7 +17,7 @@ Two players each pick a puzzle game (a *track*) and fight on a split screen. Eve
 | Pop | Puzzle Bobble (8-wide hex field; sends 1 unit per 2 bubbles dropped, x0.85; popping alone sends nothing) | 2 grey bubbles stuck under the cluster; a grey breaks next to a pop; the ceiling drops a row every 8 units taken (and every 12 shots anyway, speeding up to 7) |
 | Grab | Magical Drop (7x12, grab the lowest run of a colour, throw it under any column; 3+ in a column clears with everything of that colour touching it) | 1.75 rows pushed in from the top; own rows push every 9 s, 0.6 s faster every 20 s, down to 2.6 s |
 | Nom Nom! Pets | Baku Baku (6x12, falling pairs; a pet's head eats the connected food of its kind; a coin clears every block of the kind it lands on; heads get rarer every 30 s) | 5 wrapped food blocks on top (wrapped food unwraps when something next to it is eaten; half a row was far too weak) |
-| Power Brick | Tetris Battle Gaiden, Brick engine | Garbage row, plus a power meter |
+| Power Brick | Tetris Battle Gaiden, Brick engine (crystals in pieces, 5-star power meter) | Garbage row (a SHIELD eats one batch) |
 | Climb | Tetris Plus, Brick engine | 1 garbage row from below, lifting the stack and the professor (Climb vs Climb is a race instead: same stage, same pieces) |
 | Arsenal | Battle Blocks X, Brick engine | Garbage row; weapons from letters |
 
@@ -30,6 +30,10 @@ Single-line clears turn a random brick into a weapon letter. Clearing the letter
 Every weapon can be rolled; one the opponent's puzzle can't take shows a red X (hold it or throw it; locally it won't fire at them, over the LAN it fires and shows IMMUNE). Effects live in the shared track interface (`takes`, `applyWeapon`, per-track `fxWipe`/`fxRemove`/`fxGravity`/`fxEmpty`, applied between moves via `fxSafe`):
 - Clear Field: board back to its starting state. Remove Line: undo 1 incoming unit, else remove the line furthest from where pieces enter. Add Line: 1 unit. Speed Up/Slow Down: permanent, stacking x1.25 (x0.5-x3). Flip: field upside down 8 s. Gravity: brick fields collapse. Empty Inventory: Arsenal (and later Power Brick). Swap: the players trade games (local only).
 - Over the LAN weapons travel as negative attack numbers (-1 = Clear Field ... -9 = Swap), so the servers needed no change.
+
+## Power Brick (Tetris Battle Gaiden style)
+
+About 1 piece in 4 carries a crystal on one brick. Clears fill the meter: 1 point per line plus 3 per crystal in the cleared rows; 4 points = 1 star, max 5. C casts the power for the current star count and spends those stars: 1 Shake (own bottom 3 rows removed), 2 Shield (next incoming batch is dropped), 3 Fog (top half of the opponent's field hidden 5 s), 4 Hands (opponent's left/right reversed 5 s; CPUs are fooled too), 5 Rush (opponent's speed x2 for 6 s). Fog, Hands and Rush live in `js/track.js` (wrapFx) so every track takes them; over the LAN they travel as -21/-22/-23. Checklist: removed hold, ghost, hard drop, SRS kicks, 7-bag, lock resets, B2B, combo, all clear; kept 5 previews, fast soft drop, T-spins, cancelling, warning bar.
 
 ## Modes and menus
 

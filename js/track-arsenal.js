@@ -123,7 +123,7 @@
     else if (w === 'remove') use = me.maxH > 3 ? 'self' : null;
     else if (w === 'gravity') use = me.holes > 2 ? 'self' : (this.holdT > 6000 ? 'throw' : null);
     else if (w === 'slow') use = this.speedLv > -2 ? 'self' : 'throw';
-    else if (w === 'empty') use = this.worksOnOpp(w) && opp.inv && opp.inv.length ? 'opp' : (this.holdT > 4000 || !this.worksOnOpp(w) ? 'throw' : null);
+    else if (w === 'empty') use = this.worksOnOpp(w) && ((opp.inv && opp.inv.length) || (opp.stars && opp.stars() >= 2)) ? 'opp' : (this.holdT > 4000 || !this.worksOnOpp(w) ? 'throw' : null);
     else if (w === 'swap') use = !this.worksOnOpp(w) ? 'throw' : me.maxH > 11 ? 'opp' : (this.holdT > 6000 ? 'throw' : null);   // trade away a bad board
     else use = this.worksOnOpp(w) ? 'opp' : 'throw';
     // weaker CPUs sometimes waste one

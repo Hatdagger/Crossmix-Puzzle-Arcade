@@ -27,12 +27,20 @@
     { id: 'power', name: 'POWER BRICK' }, { id: 'climb', name: 'CLIMB' }, { id: 'arsenal', name: 'ARSENAL' }
   ];
 
+  // Power Brick's powers that hit the other player. They act on the screen or the controls, so
+  // every track takes them: Fog hides the top half of the field, Swap Hands reverses left/right,
+  // Rush doubles the speed for a while.
+  G.POWERS = ['fog', 'hands', 'rush'];
+  G.POWER_TIME = { fog: 5000, hands: 5000, rush: 6000 };
+
   G.WEAPONS = ['wipe', 'empty', 'add', 'remove', 'fast', 'slow', 'gravity', 'flip', 'swap'];
   G.WEAPON_NAMES = { wipe: 'CLEAR FIELD', empty: 'EMPTY INVENTORY', add: 'ADD LINE', remove: 'REMOVE LINE', fast: 'SPEED UP',
-    slow: 'SLOW DOWN', gravity: 'GRAVITY', flip: 'FLIP FIELD', swap: 'SWAP FIELDS' };
+    slow: 'SLOW DOWN', gravity: 'GRAVITY', flip: 'FLIP FIELD', swap: 'SWAP FIELDS',
+    fog: 'FOG', hands: 'SWAP HANDS', rush: 'RUSH' };
   // Weapons cross the LAN as negative attack numbers: -1 = wipe, -2 = empty, ...
-  G.weaponCode = function (w) { return -(G.WEAPONS.indexOf(w) + 1); };
-  G.weaponOf = function (n) { return G.WEAPONS[-n - 1]; };
+  // Powers use -21, -22, -23.
+  G.weaponCode = function (w) { var k = G.POWERS.indexOf(w); return k >= 0 ? -(21 + k) : -(G.WEAPONS.indexOf(w) + 1); };
+  G.weaponOf = function (n) { return n <= -21 ? G.POWERS[-n - 21] : G.WEAPONS[-n - 1]; };
 
   // Every track gets weapon effects without changing its own code: speed scales its clock
   // (Brick-engine tracks scale only the drop speed), flip turns its half of the screen upside down.
@@ -40,7 +48,14 @@
   function wrapFx(t) {
     var up = t.update, dr = t.draw;
     t.update = function (dt, pad) {
-      if (!this.dead) { if (this.flipT > 0) this.flipT -= dt; this.runFx(); }
+      if (!this.dead) {
+        if (this.flipT > 0) this.flipT -= dt;
+        if (this.fogT > 0) this.fogT -= dt;
+        if (this.rushT > 0) this.rushT -= dt;
+        if (this.handsT > 0) this.handsT -= dt;
+        this.runFx();
+      }
+      if (this.handsT > 0) pad = handsPad(pad);
       var m = this.fxSpeed();
       if (this.fxOwnSpeed) { this.speedMul = m; return up.call(this, dt, pad); }
       return up.call(this, dt * m, pad);
@@ -68,8 +83,32 @@
           realText(a[0], tx, ty, a[3], a[4]);
         });
       } else dr.call(this, x, y);
+      if (this.fogT > 0 && this.fieldRect && !this.dead) drawFog(this.fieldRect(x, y), this.fogT, this.flipT > 0);
+      if (this.handsT > 0 && !this.dead) G.text('HANDS SWAPPED ' + Math.ceil(this.handsT / 1000), x + 80, y + 177, G.PAL.pink, { font: 'small', align: 'center', shadow: '#000' });
+      if (this.rushT > 0 && !this.dead) G.text('RUSH ' + Math.ceil(this.rushT / 1000), x + 80, y + 168, G.PAL.red, { font: 'small', align: 'center', shadow: '#000' });
       if (this.speedLv) G.text((this.speedLv > 0 ? 'SPEED +' : 'SPEED ') + this.speedLv, x + 80, y + 186, this.speedLv > 0 ? G.PAL.red : G.PAL.cyan, { font: 'small', align: 'center', shadow: '#000' });
     };
+  }
+
+  // Swap Hands: left and right trade places (CPU players are fooled too).
+  var SWAPB = { left: 'right', right: 'left' };
+  function handsPad(pad) {
+    function m(b) { return SWAPB[b] || b; }
+    return { down: function (b) { return pad.down(m(b)); }, pressed: function (b) { return pad.pressed(m(b)); },
+      repeat: function (b, d, r) { return pad.repeat(m(b), d, r); },
+      feed: function (st, dt) { pad.feed(st, dt); },   // a CPU feeds what it means; reading swaps it
+      cur: pad.cur, prev: pad.prev, held: pad.held };
+  }
+  // Fog: a drifting grey cloud over the top half of the play field (the bottom half when flipped).
+  function drawFog(r, t, flipped) {
+    var fx = r[0], fy = r[1], fw = r[2], fh = Math.floor(r[3] / 2), ctx = G.ctxRef();
+    if (flipped) fy += r[3] - fh;
+    ctx.globalAlpha = Math.min(1, t / 400);
+    G.rect(fx, fy, fw, fh, '#3a3848');
+    var ph = Math.floor(Date.now() / 90);
+    for (var yy = 0; yy < fh; yy += 4) for (var xx = ((yy >> 2) + ph) % 8; xx < fw; xx += 8) G.rect(fx + xx, fy + yy, 3, 2, '#55526a');
+    G.text('FOG', fx + fw / 2, fy + fh / 2 - 3, '#8c88a8', { align: 'center' });
+    ctx.globalAlpha = 1;
   }
 
   // A CPU player for an existing board (used when Swap hands a board to the CPU side).
@@ -78,7 +117,7 @@
     var spare = G.TRACKS[track.trackId].make({ seed: 1, side: track.opts.side, cpuLevel: level, sendOn: true });
     var cpu = spare.cpu; if (!cpu) return null;
     cpu.t = track;
-    if (track.isArsenal) { track.cpuLevel = level; track.cpuT = 1500; track.holdT = 0; }
+    if (track.isArsenal || track.isPower) { track.cpuLevel = level; track.cpuT = 1500; track.holdT = 0; }
     return cpu;
   };
 
@@ -104,6 +143,7 @@
       this.cancelOn = true;     // your attacks cancel your incoming first
       this.markFns = [];
       this.hitFns = []; this.fxQ = []; this.flipT = 0; this.speedLv = 0;
+      this.fogT = 0; this.rushT = 0; this.handsT = 0;
     },
     onSend: function (fn) { this.sendFns.push(fn); },
     // Milestones for netplay rules: mark('piece') for every piece placed / move made,
@@ -153,6 +193,7 @@
     takes: function (w, src) {
       switch (w) {
         case 'add': case 'fast': case 'slow': case 'flip': case 'remove': return true;
+        case 'fog': case 'hands': case 'rush': return true;
         case 'wipe': return !!this.fxWipe;
         case 'gravity': return !!this.fxGravity;
         case 'empty': return !!this.fxEmpty;
@@ -171,10 +212,14 @@
     runFx: function () {
       while (this.fxQ.length && !this.dead && (!this.fxSafe || this.fxSafe())) {
         var w = this.fxQ.shift();
-        this.say(G.WEAPON_NAMES[w], w === 'fast' || w === 'add' || w === 'flip' ? G.PAL.red : G.PAL.cyan);
+        var bad = w === 'fast' || w === 'add' || w === 'flip' || G.POWERS.indexOf(w) >= 0;
+        this.say(G.WEAPON_NAMES[w], bad ? G.PAL.red : G.PAL.cyan);
         G.sfx && G.sfx(w === 'add' ? 'garbage' : 'big', this.opts.side);
         if (w === 'add') this.receive(1);   // one unit of attack, like any other
         else if (w === 'flip') this.flipT = 8000;
+        else if (w === 'fog') this.fogT = G.POWER_TIME.fog;
+        else if (w === 'hands') this.handsT = G.POWER_TIME.hands;
+        else if (w === 'rush') this.rushT = G.POWER_TIME.rush;
         // Speed Up / Slow Down are permanent for this board and stack (x1.25 each, from x0.5 to x3).
         else if (w === 'fast') this.speedLv = Math.min(5, this.speedLv + 1);
         else if (w === 'slow') this.speedLv = Math.max(-3, this.speedLv - 1);
@@ -186,7 +231,7 @@
         else if (w === 'empty') this.fxEmpty();
       }
     },
-    fxSpeed: function () { return Math.max(0.5, Math.min(3, Math.pow(1.25, this.speedLv))); },
+    fxSpeed: function () { return Math.max(0.5, Math.min(3, Math.pow(1.25, this.speedLv))) * (this.rushT > 0 ? 2 : 1); },
     say: function (text, color) { this.flash.push({ text: text, t: 1200, color: color || G.PAL.white }); },
     tickFlash: function (dt) { this.flash = this.flash.filter(function (f) { f.t -= dt; return f.t > 0; }); },
     drawFlash: function (cx, y) {
