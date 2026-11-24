@@ -108,24 +108,21 @@ void cv_field_bg(int x, int y, int w, int h)
  */
 void cv_pending(int x, int y, int h, const Track *t, WORD unitPx, WORD delay)
 {
-    WORD px[32];
-    BYTE col[32];
-    int i, k, total = h * 8, at = total;
-    BYTE flash = (BYTE)((frames_now() >> 3) & 1);
-    for (i = 0; i < h && i < 32; i++) { px[i] = 0; col[i] = PAL_STEEL; }
-    for (k = 0; k < t->npend && at > 0; k++) {
+    /* fill from the bottom: batch by batch, a whole tile at a time where possible */
+    int row = y + h - 1, used = 0, k, px, take;
+    BYTE flash = (BYTE)((frames_now() >> 3) & 1), col = PAL_STEEL;
+    for (k = 0; k < t->npend && row >= y; k++) {
         const Batch *b = &t->pending[k];
-        int ph = b->n * unitPx, j;
         BYTE c = b->t >= delay ? (flash ? PAL_RED : PAL_WHITE) : PAL_AMBER;
-        if (ph > at) ph = at;
-        for (j = 0; j < ph; j++) {
-            int p = at - 1 - j, row = p >> 3;
-            if (row < 32) { px[row]++; if (col[row] == PAL_STEEL || c == PAL_RED || c == PAL_WHITE) col[row] = c; }
+        px = b->n * unitPx;
+        while (px > 0 && row >= y) {
+            if (used == 0) col = c;
+            else if (c != PAL_AMBER) col = c;
+            take = 8 - used; if (take > px) take = px;
+            used += take; px -= take;
+            if (used == 8) { cv_put(x, row, TW(col, TB3(T_BAR + 8))); row--; used = 0; }
         }
-        at -= ph;
     }
-    for (i = 0; i < h && i < 32; i++) {
-        WORD f = px[i] > 8 ? 8 : px[i];
-        cv_put(x, y + i, TW(col[i], TB3(T_BAR + f)));
-    }
+    if (row >= y && used) { cv_put(x, row, TW(col, TB3(T_BAR + used))); row--; }
+    for (; row >= y; row--) cv_put(x, row, TW(PAL_STEEL, TB3(T_BAR)));
 }

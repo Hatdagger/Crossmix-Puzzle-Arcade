@@ -87,19 +87,10 @@ jobs:
       - name: 68000 code check (library calls per file; each mulsi3/divsi3 is slow on the 68000)
         if: always()
         continue-on-error: true
-        working-directory: neogeo-cd/build
-        shell: powershell
+        working-directory: neogeo-cd
         run: |
-          $g = (Resolve-Path gcc\gcc-2.95.2).Path
-          $env:PATH = "$g;$g\bin;$g\m68k\bin;" + $env:PATH
-          Get-ChildItem $g -Filter *objdump* -Recurse | Select-Object -First 3 | ForEach-Object { Write-Host $_.FullName }
-          $od = (Get-ChildItem $g -Filter objdump.exe -Recurse | Select-Object -First 1).FullName
-          foreach ($o in Get-ChildItem Crossmix -Filter *.o) {
-            $txt = & $od -dr $o.FullName 2>&1 | Out-String
-            $calls = [regex]::Matches($txt, "R_68K_\w+\s+(__\w+)") | ForEach-Object { $_.Groups[1].Value } | Group-Object | Sort-Object Count -Descending | ForEach-Object { "$($_.Name)=$($_.Count)" }
-            $n = ([regex]::Matches($txt, "\n\s+[0-9a-f]+:")).Count
-            Write-Host ("XMASM " + $o.Name + " instr=" + $n + " " + ($calls -join " "))
-          }
+          pip install pyelftools > $null
+          python tools/libcalls.py build/Crossmix
       - name: Converter output (for checking the fix palettes)
         if: always()
         shell: powershell

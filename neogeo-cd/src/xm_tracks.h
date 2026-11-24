@@ -32,7 +32,7 @@ typedef struct {
     SBYTE bestX; BYTE bestRot;
     SBYTE best2X; BYTE best2Rot;
     SDWORD bestSc, best2Sc;
-    WORD seen, wait, since, step, mistake;
+    WORD seen, wait, since, step, mistake, gen;
 } BrickCpu;
 
 typedef struct {
@@ -52,7 +52,9 @@ typedef struct {
     BYTE lastRot, lastKick, wasSoft;
     WORD clearT;
     DWORD clearRows;                /* bit per row that just cleared (for the flash) */
-    WORD pieceId;
+    WORD pieceId, gridGen, ghostKey, ghostGen;
+    SBYTE ghostAt;
+    BYTE ghostKeyB;
     BYTE hasPiece;
     BYTE ptype, prot;
     SBYTE px, py, lowest;

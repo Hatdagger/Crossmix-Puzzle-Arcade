@@ -227,11 +227,20 @@ static BYTE rotate(Track *t, int dir)
     return 0;
 }
 
-static SBYTE ghost_y(const Track *t)
+static SBYTE ghost_calc(const Track *t)
 {
     int y = B->py;
     while (!collides(t, B->ptype, B->prot, B->px, y + 1)) y++;
     return (SBYTE)y;
+}
+/* the landing row only changes when the piece moves sideways, turns, or the stack changes */
+static SBYTE ghost_y(Track *t)
+{
+    WORD key = (WORD)(B->pieceId * 64 + (B->px + 4) * 4 + B->prot);
+    if (key != B->ghostKey || B->gridGen != B->ghostGen || B->ghostAt < B->py) {
+        B->ghostKey = key; B->ghostGen = B->gridGen; B->ghostAt = ghost_calc(t);
+    }
+    return B->ghostAt;
 }
 
 static BYTE level_of(const Track *t)
@@ -330,7 +339,7 @@ static void cast(Track *t)
     B->points = (BYTE)(B->points - st * PER_STAR);
     trk_say(t, WEAPON_NAME[w], (w == P_SHAKE || w == P_SHIELD) ? PAL_CYAN : PAL_RED);
     trk_sfx(t, S_CAST);
-    if (w == P_SHAKE) { for (i = 0; i < 3; i++) remove_row(t, ROWS - 1); }
+    if (w == P_SHAKE) { for (i = 0; i < 3; i++) remove_row(t, ROWS - 1); B->gridGen++; }
     else if (w == P_SHIELD) B->shield = 1;
     else trk_hit(t, w);
 }
@@ -596,6 +605,7 @@ static void new_stage(Track *t)
 
 static void spike_row(Track *t, int row)
 {
+    B->gridGen++;
     if (row < 0 || row >= ROWS || !row_any(t, row)) return;
     clear_row(t, row);
     B->clearRows = 1UL << row; B->clearT = 200;
@@ -678,6 +688,7 @@ static void lock_piece(Track *t)
 {
     SBYTE c[4][2];
     BYTE allHidden = 1, n, ts, i;
+    B->gridGen++;
     ts = t->kind == TK_CLIMB ? 0 : tspin_kind(t);
     cells_of(B->ptype, B->prot, B->px, B->py, c);
     for (i = 0; i < 4; i++) {
@@ -729,7 +740,7 @@ static void hold(Track *t)
 
 static void hard_drop(Track *t)
 {
-    B->py = ghost_y(t);
+    B->py = ghost_calc(t);
     trk_sfx(t, S_HARD);
     lock_piece(t);
 }
@@ -743,6 +754,7 @@ static WORD base_rows[ROWS];
 static BYTE POPC[16] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 #define POP10(m) (POPC[(m) & 15] + POPC[((m) >> 4) & 15] + POPC[((m) >> 8) & 3])
 
+static const Track *rows_owner;
 static WORD coll_rows[ROWS];          /* base_rows plus Climb's ceiling, for collisions */
 static WORD PM[8][4][4];               /* piece row masks [type][rot][row] */
 static BYTE pm_ready;
@@ -832,7 +844,9 @@ static void cpu_search(Track *t)
     BYTE type = B->ptype, rot, nrot = (BYTE)(type == 4 ? 1 : 4);
     int x, y, i, above;
     SDWORD sc;
-    load_base_rows(t);
+    /* the row masks are shared by both boards: reload when they belong to the other one */
+    if ((c->rotNow == 0 && c->xNow == -3) || B->gridGen != c->gen || rows_owner != t) { load_base_rows(t); rows_owner = t; }
+    c->gen = B->gridGen;
     do {
         rot = c->rotNow; x = c->xNow;
         if (!fast_collide(type, rot, x, B->py)) {
@@ -979,6 +993,7 @@ BYTE brick_fx(Track *t, BYTE w)
 {
     BYTE q = (BYTE)(w & 0x80);
     int x, y, wr;
+    B->gridGen++;
     w &= 0x7f;
     switch (w) {
     case W_WIPE:
