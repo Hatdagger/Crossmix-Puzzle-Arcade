@@ -87,18 +87,29 @@ void game_music(BYTE track)
 }
 
 /* ---------------------------------------------------------------- fix layer */
+/* compare two tiles at a time; send the ones that changed */
+static void flush_cols(WORD x0, WORD x1, WORD y0, WORD y1)
+{
+    WORD x, y, *sw, *dw;
+    DWORD *s, *d;
+    for (y = y0; y < y1; y++) {
+        s = (DWORD *)&scr[y][x0]; d = (DWORD *)&sent[y][x0];
+        for (x = x0; x < x1; x += 2, s++, d++) {
+            if (*s == *d) continue;
+            sw = (WORD *)s; dw = (WORD *)d;
+            if (sw[0] != dw[0]) { dw[0] = sw[0]; SC234Put(0x7000 + (x << 5) + y + 2, sw[0]); }
+            if (sw[1] != dw[1]) { dw[1] = sw[1]; SC234Put(0x7000 + ((x + 1) << 5) + y + 2, sw[1]); }
+        }
+    }
+}
+
 static void flush(void)
 {
-    WORD *s = &scr[0][0], *d = &sent[0][0], *end = s + SCR_W * SCR_H, w, addr;
-    WORD x = 0, y = 2;
-    for (; s < end; s++, d++) {
-        if (*s != *d) {
-            w = *s; *d = w;
-            addr = (WORD)(0x7000 + (x << 5) + y);
-            SC234Put(addr, w);
-        }
-        if (++x == SCR_W) { x = 0; y++; }
-    }
+    flush_cols(0, SCR_W, 0, 1);                       /* the header line, always */
+    if ((xm_flush & 3) == 3) flush_cols(0, SCR_W, 1, SCR_H);
+    else if (xm_flush & 1) flush_cols(0, 20, 1, SCR_H);
+    else if (xm_flush & 2) flush_cols(20, SCR_W, 1, SCR_H);
+    xm_flush = 0;
 }
 
 /* ---------------------------------------------------------------- main */

@@ -121,7 +121,8 @@ jobs:
           if-no-files-found: ignore
       - name: Raw BIN/CUE (MODE1/2352 data + audio tracks)
         working-directory: neogeo-cd
-        run: python tools/make_bincue.py dist/Crossmix/Crossmix-0.9.0/cd/iso bincue
+        shell: bash
+        run: python tools/make_bincue.py "$(ls -d dist/Crossmix/*/cd/iso | head -1)" bincue
       - name: Package
         shell: bash
         run: |

@@ -1,5 +1,7 @@
 # Crossmix Puzzle Arcade — prototype v0.9.0
 
+**Neo Geo CD version:** every release has a Neo Geo CD disc (`-NeoGeoCD-BINCUE.zip` for a real console, MiSTer or optical drive emulator; `.chd` for MAME). All ten puzzles, Versus CPU, Versus 2P, Survival and Side by Side. See [`neogeo-cd/README.md`](neogeo-cd/README.md).
+
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
 All code and art are original. Only the rules are borrowed in spirit. The full design is in [`docs/concept.md`](docs/concept.md).
@@ -128,9 +130,11 @@ js/gfx.js         pixel renderer kit from SPACBRACK
 tools/sim.js      headless CPU-vs-CPU balance runs
 tools/lan-server.js  LAN server for challenges (plain Node)
 docs/             design notes
+neogeo-cd/        the Neo Geo CD version in C (NeoCore), see its README
 ```
 
 ## Next
 
-1. Neo Geo CD build (NeoCore, from SPACBRACK's `tetris` branch and the Calm Combo port), built by GitHub Actions into BIN/CUE and CHD.
+1. Play the Neo Geo CD disc on real hardware / MiSTer and tune from there (speed, CPU strength, balance).
 2. A better Climb CPU.
+3. Your own music for the disc (`neogeo-cd/music/`).

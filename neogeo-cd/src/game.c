@@ -234,6 +234,7 @@ static void title_frame(WORD dt)
         if (key == drawKey) return;
         drawKey = key;
     }
+    xm_flush = 3;
     cv_clear(0, 0, SCR_W, SCR_H);
     cv_textc(0, 40, 4, PAL_PINK, "C R O S S M I X");
     cv_textc(0, 40, 6, PAL_CYAN, "PUZZLE ARCADE");
@@ -316,6 +317,7 @@ static void select_frame(void)
         if (key == drawKey) return;
         drawKey = key;
     }
+    xm_flush = 3;
     cv_clear(0, 0, SCR_W, SCR_H);
     cv_textc(0, 40, 0, PAL_WHITE, "PICK YOUR PUZZLE");
     draw_select_side(0, 0);
@@ -439,8 +441,8 @@ static void draw_header(void)
         int ox = i * 20;
         if (!active[i]) continue;
         cv_text(ox + 1, 0, trk_color(kind[i]), trk_name(kind[i]));
-        if (mode == M_CPU || mode == M_VS) for (k = 0; k < 2; k++) cv_put(ox + 17 + k, 0, TW(k < wins[i] ? PAL_YELLOW : PAL_STEEL, TB3(k < wins[i] ? T_STAR : T_STAR_OFF)));
-        if (!human[i]) { cv_text(ox + 13, 0, PAL_GREY, "LV"); cv_text(ox + 15, 0, PAL_GREY, cv_num(level[i])); }
+        if (mode == M_CPU || mode == M_VS) for (k = 0; k < 2; k++) cv_put(ox + 18 + k, 0, TW(k < wins[i] ? PAL_YELLOW : PAL_STEEL, TB3(k < wins[i] ? T_STAR : T_STAR_OFF)));
+        if (!human[i] || bot[i]) { cv_text(ox + 15, 0, PAL_GREY, "LV"); cv_text(ox + 17, 0, PAL_GREY, cv_num(human[i] ? bot[i] : level[i])); }
     }
     if (mode == M_SURV) { cv_text(17, 0, PAL_AMBER, "KO"); cv_text(19, 0, PAL_AMBER, cv_num(kos)); }
     if (demo) cv_clear(13, 0, 14, 1);
@@ -500,6 +502,8 @@ static void match_draw(void)
     int i = fcount & 1;
     /* each half is redrawn every other frame (30 Hz), the 68000 has two boards to run */
     cv_clear(i * 20, 1, 20, SCR_H - 1);
+    /* overlays reach into both halves: then both are sent */
+    xm_flush = (BYTE)((menu || phase != PH_PLAY) ? 3 : 1 << i);
     if (active[i]) trk_draw(&trk[i], i * 20);
     else if (mode == M_SIDE) { cv_textc(i * 20, 20, 12, PAL_GREY, "PRESS START"); cv_textc(i * 20, 20, 13, PAL_GREY, "TO JOIN"); }
     if (mode == M_SIDE && active[i] && trk[i].dead && human[i]) cv_textc(i * 20, 20, 12, PAL_WHITE, "A: AGAIN");

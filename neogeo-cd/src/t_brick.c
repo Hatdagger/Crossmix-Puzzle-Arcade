@@ -743,14 +743,43 @@ static WORD base_rows[ROWS];
 static BYTE POPC[16] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 #define POP10(m) (POPC[(m) & 15] + POPC[((m) >> 4) & 15] + POPC[((m) >> 8) & 3])
 
+static WORD coll_rows[ROWS];          /* base_rows plus Climb's ceiling, for collisions */
+static WORD PM[8][4][4];               /* piece row masks [type][rot][row] */
+static BYTE pm_ready;
+
 static void load_base_rows(const Track *t)
 {
-    int y, c;
+    int y, c, top = t->kind == TK_CLIMB ? ceil_row(t) : 0, ty, r, i;
+    if (!pm_ready) {
+        for (ty = 1; ty < 8; ty++) for (r = 0; r < 4; r++) {
+            for (i = 0; i < 4; i++) PM[ty][r][i] = 0;
+            for (i = 0; i < 4; i++) PM[ty][r][SH[ty][r][i][1]] |= (WORD)(1 << SH[ty][r][i][0]);
+        }
+        pm_ready = 1;
+    }
     for (y = 0; y < ROWS; y++) {
         WORD m = 0;
         for (c = 0; c < COLS; c++) if (B->grid[y][c]) m |= (WORD)(1 << c);
         base_rows[y] = m;
+        coll_rows[y] = (WORD)(y < top ? 0x3ff : m);
     }
+}
+
+/* collides() with row bitmasks: much cheaper for the CPU's search */
+static BYTE fast_collide(BYTE type, BYTE rot, int x, int y)
+{
+    int k, cy;
+    WORD m, s;
+    for (k = 0; k < 4; k++) {
+        m = PM[type][rot][k];
+        if (!m) continue;
+        cy = y + k;
+        if (cy >= ROWS) return 1;
+        if (x >= 0) { s = (WORD)(m << x); if (s & ~0x3ff) return 1; }
+        else { if (m & ((1 << -x) - 1)) return 1; s = (WORD)(m >> -x); }
+        if (cy >= 0 && (coll_rows[cy] & s)) return 1;
+    }
+    return 0;
 }
 
 static SDWORD eval_place(const Track *t, BYTE type, BYTE rot, int x, int y)
@@ -805,9 +834,9 @@ static void cpu_search_step(Track *t)
     SDWORD sc;
     if (rot == 0) load_base_rows(t);
     for (x = -3; x < COLS; x++) {
-        if (collides(t, type, rot, x, B->py)) continue;
+        if (fast_collide(type, rot, x, B->py)) continue;
         y = B->py;
-        while (!collides(t, type, rot, x, y + 1)) y++;
+        while (!fast_collide(type, rot, x, y + 1)) y++;
         above = 1;
         for (i = 0; i < 4; i++) if (y + SH[type][rot][i][1] >= HIDDEN) above = 0;
         if (above) continue;

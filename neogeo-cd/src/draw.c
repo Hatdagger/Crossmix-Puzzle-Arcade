@@ -5,6 +5,7 @@
 WORD scr[SCR_H][SCR_W];
 
 BYTE xm_think = 1;
+BYTE xm_flush = 3;
 
 void cv_fill(int x, int y, int w, int h, WORD word)
 {
@@ -14,6 +15,15 @@ void cv_fill(int x, int y, int w, int h, WORD word)
     if (y < 0) { h += y; y = 0; }
     if (x + w > SCR_W) w = SCR_W - x;
     if (y + h > SCR_H) h = SCR_H - y;
+    if (!(x & 1) && !(w & 1)) {
+        /* two tiles at a time */
+        DWORD dw = ((DWORD)word << 16) | word, *q;
+        for (j = 0; j < h; j++) {
+            q = (DWORD *)&scr[y + j][x];
+            for (i = w >> 1; i > 0; i--) *q++ = dw;
+        }
+        return;
+    }
     for (j = 0; j < h; j++) {
         p = &scr[y + j][x];
         for (i = w; i > 0; i--) *p++ = word;
