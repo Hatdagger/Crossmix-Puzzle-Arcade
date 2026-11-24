@@ -47,6 +47,17 @@
   var P = Calm.prototype;
   Object.assign(P, G.TrackBase);
 
+  // weapon effects: Clear Field deals a fresh board, Remove Line turns up to 3 stones back into tiles
+  P.fxSafe = function () { return this.state === 'idle'; };
+  P.unstone = function (max) {
+    var self = this, n = 0;
+    this.grid.forEach(function (r) { r.forEach(function (t) { if (t.color === STONE && n < max) { t.color = self.rnd(); t.pop = 300; n++; } }); });
+    var m = this.colors();
+    if (findMatches(m).count || !hasValidMove(m)) this.shuffle();
+    this.drag = null;
+  };
+  P.fxWipe = function () { this.fill(); this.drag = null; };
+  P.fxRemove = function () { this.unstone(3); };
   P.rnd = function () { return Math.floor(this.rng() * NC); };
   P.tile = function (color, fall) { return { color: color, off: fall || 0, dying: false, pop: 0 }; };
   P.colors = function () { return this.grid.map(function (r) { return r.map(function (t) { return t.color; }); }); };

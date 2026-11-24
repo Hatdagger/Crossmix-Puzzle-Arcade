@@ -96,7 +96,14 @@
     // RANDOM picks again for every new board
     var id = G.TRACKS[A.pick] ? A.pick : G.TRACK_ORDER[Math.floor(Math.random() * G.TRACK_ORDER.length)];
     var me = { trackId: id, seed: seed(), pad: new G.Pad(), log: [], sent: 0, incoming: [], deadSent: false, frac: 0 };
-    me.track = G.TRACKS[me.trackId].make({ seed: me.seed, side: SET.side, cpuLevel: 0, sendOn: true });
+    me.track = G.TRACKS[me.trackId].make({ seed: me.seed, side: SET.side, cpuLevel: 0, sendOn: true, net: true });
+    // Arsenal weapons go to the CPU directly, or to the other PC as negative attack numbers.
+    me.track.onHit(function (w) {
+      if (!A || w === 'swap') return;
+      if (A.opp && A.opp.kind === 'cpu' && A.opp.track && !A.opp.track.dead) A.opp.track.applyWeapon(w, me.track);
+      else if (A.opp && A.opp.kind === 'remote' && A.ch && A.ch.live) sendNow({ t: 'atk', n: G.weaponCode(w) });
+    });
+    if (me.track.setOpponent) me.track.setOpponent(A.opp && A.opp.kind === 'cpu' ? A.opp.track : A.opp && A.opp.mirror ? A.opp.mirror.track : null);
     me.track.onSend(function (n) {
       if (!A) return;
       if (A.opp && A.opp.kind === 'cpu' && A.opp.track && !A.opp.track.dead) A.opp.track.receive(n);
@@ -116,7 +123,10 @@
     id = id[Math.floor(Math.random() * id.length)];
     var t = G.TRACKS[id].make({ seed: seed(), side: 1 - SET.side, cpuLevel: level, sendOn: true });
     t.onSend(function (n) { if (A && A.me && A.phase === 'play') A.me.incoming.push(n); });
+    t.onHit(function (w) { if (A && A.me && A.phase === 'play' && w !== 'swap') A.me.incoming.push(G.weaponCode(w)); });
     A.opp = { kind: 'cpu', id: id, level: level, track: t, pad: new G.Pad() };
+    if (t.setOpponent) t.setOpponent(A.me && A.me.track);
+    if (A.me && A.me.track.setOpponent) A.me.track.setOpponent(t);
   }
   // Attacks from a remote opponent: half while a challenger is still protected.
   function incomingRemote(n) {
@@ -147,7 +157,9 @@
         return;
       case 'oboard':
         if (!A.opp || A.opp.kind !== 'remote') return;
-        var t = G.TRACKS[m.track] ? G.TRACKS[m.track].make({ seed: m.seed >>> 0, side: 1 - SET.side, cpuLevel: 0, sendOn: true }) : null;
+        var t = G.TRACKS[m.track] ? G.TRACKS[m.track].make({ seed: m.seed >>> 0, side: 1 - SET.side, cpuLevel: 0, sendOn: true, net: true }) : null;
+        if (t && t.setOpponent) t.setOpponent(me && me.track);
+        if (t && me && me.track.setOpponent) me.track.setOpponent(t);
         A.opp.mirror = { trackId: m.track, track: t, frames: [], ptr: 0, pad: new G.Pad() };
         return;
       case 'of':
@@ -157,7 +169,7 @@
         for (var i = mr.frames.length - m.start; i < m.frames.length; i++) mr.frames.push(m.frames[i]);
         return;
       case 'atk':
-        if (A.ch && A.phase === 'play') incomingRemote(m.n);
+        if (A.ch && A.phase === 'play') { if (m.n < 0) me.incoming.push(m.n); else incomingRemote(m.n); }   // negative = an Arsenal weapon
         return;
       case 'roundEnd':
         if (!A.ch) return;
@@ -251,7 +263,7 @@
   }
   function stepMe() {
     var me = A.me, ev = me.incoming.splice(0);
-    ev.forEach(function (n) { me.track.receive(n); });
+    ev.forEach(function (n) { if (n < 0) me.track.applyWeapon(G.weaponOf(n), null); else me.track.receive(n); });
     var bits = bitsOf(G.Input.humans[0]);
     me.pad.feed(stateOf(bits), STEP);
     me.track.update(STEP, me.pad);
@@ -272,7 +284,7 @@
   }
   function stepMirror(mr) {
     var e = mr.frames[mr.ptr++], bits = typeof e === 'number' ? e : e[0];
-    if (typeof e !== 'number') for (var i = 1; i < e.length; i++) mr.track.receive(e[i]);
+    if (typeof e !== 'number') for (var i = 1; i < e.length; i++) { if (e[i] < 0) mr.track.applyWeapon(G.weaponOf(e[i]), null); else mr.track.receive(e[i]); }
     mr.pad.feed(stateOf(bits), STEP);
     mr.track.update(STEP, mr.pad);
   }

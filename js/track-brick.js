@@ -147,7 +147,20 @@
     G.sfx && G.sfx('hold', this.opts.side);
   };
   P.level = function () { return Math.min(GRAV.length, 1 + Math.floor(this.elapsed / 60000)); };
-  P.speedMul = 1;   // weapons / powers will change this later
+  P.speedMul = 1;   // set by Speed Up / Slow Down (see wrapFx in track.js)
+  // ---------- weapon effects ----------
+  P.fxOwnSpeed = true;
+  P.fxWipe = function () { for (var y = 0; y < ROWS; y++) this.grid[y] = emptyRow(); };
+  P.fxRemove = function () { this.grid.splice(ROWS - 1, 1); this.grid.unshift(emptyRow()); };
+  // every brick falls straight down (SPACBRACK's Collapse)
+  P.fxGravity = function () {
+    for (var x = 0; x < COLS; x++) {
+      var w = ROWS - 1;
+      for (var y = ROWS - 1; y >= 0; y--) if (this.grid[y][x]) { var v = this.grid[y][x]; this.grid[y][x] = null; this.grid[w--][x] = v; }
+    }
+    // the falling piece might now overlap nothing new, but make sure it isn't inside the stack
+    if (this.piece && this.collides(this.piece.type, this.piece.rot, this.piece.x, this.piece.y)) this.piece.y = Math.max(-1, this.piece.y - 2);
+  };
   P.gravityMs = function () { return GRAV[this.level() - 1] / this.speedMul; };
 
   P.update = function (dt, pad) {
@@ -161,7 +174,7 @@
     if (pad.pressed('a')) this.rotate(-1);
     if (pad.pressed('b')) this.rotate(1);
     if (pad.pressed('c')) this.hold();
-    if (this.s.hardDrop && (pad.pressed('d') || pad.pressed('up'))) { this.hardDrop(); return; }
+    if (this.s.hardDrop && ((this.s.dDrop !== false && pad.pressed('d')) || pad.pressed('up'))) { this.hardDrop(); return; }
 
     // Sideways movement with DAS / ARR.
     var L = pad.down('left'), R = pad.down('right');
@@ -302,7 +315,7 @@
     // stack
     for (var ry = HIDDEN; ry < ROWS; ry++) for (var cx = 0; cx < COLS; cx++) {
       var c = this.grid[ry][cx];
-      if (c) G.brick(fx + cx * CELL, fy + (ry - HIDDEN) * CELL, CELL, COLORS[c]);
+      if (c) G.brick(fx + cx * CELL, fy + (ry - HIDDEN) * CELL, CELL, COLORS[c] || '#e8e2d0');
     }
     if (this.clearT > 0) {
       var a = this.clearT / 200, ctx = G.ctxRef();
@@ -419,7 +432,7 @@
     if (p.rot !== plan.rot && this.fails < 6) { st.b = true; this.fails++; }
     else if (p.x !== plan.x && this.fails < 30) { st[p.x < plan.x ? 'right' : 'left'] = true; this.fails++; }
     else if (t.cpuWait && t.cpuWait(plan)) { pad.feed(st, dt); return; }   // e.g. Climb: let the professor walk clear first
-    else if (t.s.hardDrop) st.d = true;
+    else if (t.s.hardDrop) st[t.s.dDrop === false ? 'up' : 'd'] = true;   // Arsenal hard drops with Up (D fires weapons)
     else { st.down = true; pad.feed(st, dt); return; }
     this.tap = true; this.wait = this.cfg.step;
     pad.feed(st, dt);

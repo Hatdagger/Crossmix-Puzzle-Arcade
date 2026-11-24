@@ -118,6 +118,10 @@
   var P = Grab.prototype;
   Object.assign(P, G.TrackBase);
 
+  // weapon effects
+  P.fxSafe = function () { return this.state === 'play'; };
+  P.fxWipe = function () { this.grid = emptyGrid(); for (var i = 0; i < CFG.startRows; i++) this.pushRow(true); };
+  P.fxRemove = function () { this.grid.shift(); var row = []; for (var c = 0; c < COLS; c++) row.push(-1); this.grid.push(row); };   // the top row, furthest from the grabber
   P.pushEvery = function () { return Math.max(CFG.pushMin, CFG.pushEvery - Math.floor(this.elapsed / CFG.speedUpEvery) * CFG.pushStep); };
   P.die = function () { if (!this.dead) { this.dead = true; this.state = 'over'; G.sfx && G.sfx('ko', this.opts.side); } };
   // A new row comes in from the top and everything moves down one.

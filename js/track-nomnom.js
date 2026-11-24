@@ -92,6 +92,10 @@
   var P = Nom.prototype;
   Object.assign(P, G.TrackBase);
 
+  // weapon effects
+  P.fxSafe = function () { return this.state === 'fall'; };
+  P.fxWipe = function () { this.grid = emptyGrid(); };
+  P.fxRemove = function () { this.grid.pop(); var row = []; for (var c = 0; c < COLS; c++) row.push(-1); this.grid.unshift(row); gravity(this.grid); };
   P.newBlock = function () {
     var x = this.rng(), k = Math.floor(this.rng() * NK);
     if (x < CFG.coinOdds) return COIN;

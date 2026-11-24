@@ -4,13 +4,15 @@ globalThis.window = { addEventListener: function () {} };
 globalThis.navigator = {};
 globalThis.localStorage = { getItem: function () { return null; }, setItem: function () {} };
 var path = require('path'), root = path.join(__dirname, '..', 'js');
-['gfx.js', 'input.js', 'track.js', 'track-brick.js', 'track-calm.js', 'track-climb.js', 'track-jewel.js', 'track-swap.js', 'track-pop.js', 'track-grab.js', 'track-nomnom.js'].forEach(function (f) { require(path.join(root, f)); });
+['gfx.js', 'input.js', 'track.js', 'track-brick.js', 'track-calm.js', 'track-climb.js', 'track-jewel.js', 'track-swap.js', 'track-pop.js', 'track-grab.js', 'track-nomnom.js', 'track-arsenal.js'].forEach(function (f) { require(path.join(root, f)); });
 var G = globalThis.G;
 var games = +process.argv[2] || 10, la = +process.argv[3] || 5, lb = +process.argv[4] || la;
 function play(idA, idB, seed) {
   var a = G.TRACKS[idA].make({ seed: seed, side: 0, cpuLevel: la, sendOn: true });
   var b = G.TRACKS[idB].make({ seed: seed * 7 + 1, side: 1, cpuLevel: lb, sendOn: true });
   a.onSend(function (n) { b.receive(n); }); b.onSend(function (n) { a.receive(n); });
+  a.onHit(function (w) { b.applyWeapon(w, a); }); b.onHit(function (w) { a.applyWeapon(w, b); });   // Arsenal weapons (Swap isn't simulated)
+  if (a.setOpponent) a.setOpponent(b); if (b.setOpponent) b.setOpponent(a);
   var pa = new G.Pad(), pb = new G.Pad(), t = 0, dt = 16;
   while (!a.dead && !b.dead && t < 600000) { a.update(dt, pa); b.update(dt, pb); t += dt; }
   return { win: a.dead && b.dead ? -1 : a.dead ? 1 : b.dead ? 0 : -2, t: t, sa: a.sent, sb: b.sent };

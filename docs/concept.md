@@ -25,7 +25,11 @@ Power Brick, Climb and Arsenal switch modern Brick features off per track (check
 
 ## Arsenal (Battle Blocks X style)
 
-Single-line clears turn a random brick into a weapon letter. Clearing the letter's row collects it, one copy per line in that clear. Inventory has fixed slots, used in order; when full, new weapons are thrown out. C uses the front weapon on player 1, D on player 2 (same buttons for both players). Select throws away the front weapon (Start on MVS). Arsenal vs Arsenal has no garbage; in mixed matches it also trickles 2/3/4 lines = 0/1/2 units.
+Single-line clears turn a random brick into a weapon letter. Clearing the letter's row collects it, one copy per line in that clear. Inventory has 8 slots, used in order; when full, new weapons are thrown out. C uses the front weapon on player 1, D on player 2 (same buttons for both players). Select throws away the front weapon (Start on MVS). Up is hard drop. Arsenal vs Arsenal has no garbage; in mixed matches it also trickles 2/3/4 lines = 0/1/2 units.
+
+Every weapon can be rolled; one the opponent's puzzle can't take shows a red X (hold it or throw it; locally it won't fire at them, over the LAN it fires and shows IMMUNE). Effects live in the shared track interface (`takes`, `applyWeapon`, per-track `fxWipe`/`fxRemove`/`fxGravity`/`fxEmpty`, applied between moves via `fxSafe`):
+- Clear Field: board back to its starting state. Remove Line: undo 1 incoming unit, else remove the line furthest from where pieces enter. Add Line: 1 unit. Speed Up/Slow Down: permanent, stacking x1.25 (x0.5-x3). Flip: field upside down 8 s. Gravity: brick fields collapse. Empty Inventory: Arsenal (and later Power Brick). Swap: the players trade games (local only).
+- Over the LAN weapons travel as negative attack numbers (-1 = Clear Field ... -9 = Swap), so the servers needed no change.
 
 ## Modes and menus
 

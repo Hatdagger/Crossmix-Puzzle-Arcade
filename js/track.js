@@ -14,6 +14,8 @@
 
   G.registerTrack = function (id, def) {
     def.id = id;
+    var mk = def.make;
+    def.make = function (opts) { var t = mk(opts); t.trackId = id; wrapFx(t); return t; };
     G.TRACKS[id] = def;
     if (G.TRACK_ORDER.indexOf(id) < 0) G.TRACK_ORDER.push(id);
   };
@@ -24,6 +26,44 @@
     { id: 'grab', name: 'GRAB' }, { id: 'nomnom', name: 'NOM NOM! PETS' },
     { id: 'power', name: 'POWER BRICK' }, { id: 'climb', name: 'CLIMB' }, { id: 'arsenal', name: 'ARSENAL' }
   ];
+
+  G.WEAPONS = ['wipe', 'empty', 'add', 'remove', 'fast', 'slow', 'gravity', 'flip', 'swap'];
+  G.WEAPON_NAMES = { wipe: 'CLEAR FIELD', empty: 'EMPTY INVENTORY', add: 'ADD LINE', remove: 'REMOVE LINE', fast: 'SPEED UP',
+    slow: 'SLOW DOWN', gravity: 'GRAVITY', flip: 'FLIP FIELD', swap: 'SWAP FIELDS' };
+  // Weapons cross the LAN as negative attack numbers: -1 = wipe, -2 = empty, ...
+  G.weaponCode = function (w) { return -(G.WEAPONS.indexOf(w) + 1); };
+  G.weaponOf = function (n) { return G.WEAPONS[-n - 1]; };
+
+  // Every track gets weapon effects without changing its own code: speed scales its clock
+  // (Brick-engine tracks scale only the drop speed), flip turns its half of the screen upside down.
+  function wrapFx(t) {
+    var up = t.update, dr = t.draw;
+    t.update = function (dt, pad) {
+      if (!this.dead) { if (this.flipT > 0) this.flipT -= dt; this.runFx(); }
+      var m = this.fxSpeed();
+      if (this.fxOwnSpeed) { this.speedMul = m; return up.call(this, dt, pad); }
+      return up.call(this, dt * m, pad);
+    };
+    t.draw = function (x, y) {
+      var ctx = G.ctxRef();
+      if (this.flipT > 0) {
+        ctx.save(); ctx.beginPath(); ctx.rect(x, y, 160, 194); ctx.clip();
+        ctx.translate(0, 2 * y + 194); ctx.scale(1, -1);
+        dr.call(this, x, y); ctx.restore();
+      } else dr.call(this, x, y);
+      if (this.speedLv) G.text((this.speedLv > 0 ? 'SPEED +' : 'SPEED ') + this.speedLv, x + 80, y + 186, this.speedLv > 0 ? G.PAL.red : G.PAL.cyan, { font: 'small', align: 'center', shadow: '#000' });
+    };
+  }
+
+  // A CPU player for an existing board (used when Swap hands a board to the CPU side).
+  // Every CPU keeps its board in .t, so a spare one is made and pointed at this board.
+  G.cpuFor = function (track, level) {
+    var spare = G.TRACKS[track.trackId].make({ seed: 1, side: track.opts.side, cpuLevel: level, sendOn: true });
+    var cpu = spare.cpu; if (!cpu) return null;
+    cpu.t = track;
+    if (track.isArsenal) { track.cpuLevel = level; track.cpuT = 1500; track.holdT = 0; }
+    return cpu;
+  };
 
   G.mulberry32 = function (a) {
     return function () {
@@ -46,6 +86,7 @@
       this.flash = [];          // floating messages {text, t, color}
       this.cancelOn = true;     // your attacks cancel your incoming first
       this.markFns = [];
+      this.hitFns = []; this.fxQ = []; this.flipT = 0; this.speedLv = 0;
     },
     onSend: function (fn) { this.sendFns.push(fn); },
     // Milestones for netplay rules: mark('piece') for every piece placed / move made,
@@ -86,6 +127,49 @@
       this.sent += n;
       this.sendFns.forEach(function (f) { f(n); });
     },
+    // ---------- Arsenal weapons (and later Power Brick powers) ----------
+    // A track that fires weapons calls hit(w); the match passes it to the opponent's applyWeapon.
+    onHit: function (fn) { this.hitFns.push(fn); },
+    hit: function (w) { this.hitFns.forEach(function (f) { f(w); }); },
+    // Does this track react to weapon w? Add Line, Speed Up / Slow Down and Flip work on every
+    // track; the others need the track's own fx method.
+    takes: function (w, src) {
+      switch (w) {
+        case 'add': case 'fast': case 'slow': case 'flip': case 'remove': return true;
+        case 'wipe': return !!this.fxWipe;
+        case 'gravity': return !!this.fxGravity;
+        case 'empty': return !!this.fxEmpty;
+        case 'swap': return !this.opts.net && !(src && src.opts.net);   // the match swaps the two games (local play only)
+      }
+      return false;
+    },
+    applyWeapon: function (w, src) {
+      if (this.dead) return;
+      if (!this.takes(w, src)) { this.say('IMMUNE', G.PAL.grey); return; }
+      if (w === 'swap') return;   // handled by the match (it needs both sides)
+      this.fxQ.push(w);
+    },
+    // Clear Field (fxWipe) puts a board back the way it looked when the match started.
+    // Weapons wait until the track is between moves (fxSafe), so they never land mid-clear.
+    runFx: function () {
+      while (this.fxQ.length && !this.dead && (!this.fxSafe || this.fxSafe())) {
+        var w = this.fxQ.shift();
+        this.say(G.WEAPON_NAMES[w], w === 'fast' || w === 'add' || w === 'flip' ? G.PAL.red : G.PAL.cyan);
+        G.sfx && G.sfx(w === 'add' ? 'garbage' : 'big', this.opts.side);
+        if (w === 'add') this.receive(1);   // one unit of attack, like any other
+        else if (w === 'flip') this.flipT = 8000;
+        // Speed Up / Slow Down are permanent for this board and stack (x1.25 each, from x0.5 to x3).
+        else if (w === 'fast') this.speedLv = Math.min(5, this.speedLv + 1);
+        else if (w === 'slow') this.speedLv = Math.max(-3, this.speedLv - 1);
+        else if (w === 'wipe') this.fxWipe();
+        // Remove Line undoes incoming garbage first; otherwise the track removes the line
+        // furthest from where its pieces come in
+        else if (w === 'remove') { if (this.pending.length) { var b = this.pending[this.pending.length - 1]; if (--b.n <= 0) this.pending.pop(); } else if (this.fxRemove) this.fxRemove(); }
+        else if (w === 'gravity') this.fxGravity();
+        else if (w === 'empty') this.fxEmpty();
+      }
+    },
+    fxSpeed: function () { return Math.max(0.5, Math.min(3, Math.pow(1.25, this.speedLv))); },
     say: function (text, color) { this.flash.push({ text: text, t: 1200, color: color || G.PAL.white }); },
     tickFlash: function (dt) { this.flash = this.flash.filter(function (f) { f.t -= dt; return f.t > 0; }); },
     drawFlash: function (cx, y) {

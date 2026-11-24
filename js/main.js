@@ -70,6 +70,12 @@
       var o = S.sides[1 - i];
       if (!s.track) return;
       s.track.onSend(function (n) { if (sendOn && o.track && !o.track.dead && S.phase === 'play') o.track.receive(n); });
+      // Arsenal weapons: Swap trades the two games (after this frame); the rest hit the other board.
+      s.track.onHit(function (w) {
+        if (!sendOn || !o.track || o.track.dead || S.phase !== 'play') return;
+        if (w === 'swap') S.swapGames = true; else o.track.applyWeapon(w, s.track);
+      });
+      if (s.track.setOpponent) s.track.setOpponent(o.track);
     });
   }
   function startMatch() {
@@ -101,8 +107,26 @@
     s.pad = new G.Pad();
     makeTrack(s, true);
     // relink: rebuild send hooks for both sides
-    S.sides[0].track.sendFns = [];
+    S.sides[0].track.sendFns = []; S.sides[0].track.hitFns = [];
     link();
+  }
+
+  // Swap: each player takes over the other's game, board and all. A board going to the CPU side
+  // gets a CPU player; a board going to a human loses its CPU.
+  function swapGames() {
+    var a = S.sides[0], b = S.sides[1], ta = a.track, tb = b.track;
+    if (!ta || !tb || ta.dead || tb.dead) return;
+    [[tb, a], [ta, b]].forEach(function (x) {
+      var t = x[0], s = x[1];
+      t.opts.side = s.i; t.opts.cpuLevel = s.human ? 0 : s.cpuLevel;
+      t.cpu = s.human ? null : G.cpuFor(t, s.cpuLevel);
+    });
+    a.track = tb; b.track = ta;
+    var id = a.id; a.id = b.id; b.id = id;
+    S.sides.forEach(function (s) { s.track.sendFns = []; s.track.hitFns = []; s.pad.feed({}, 16); });
+    link();
+    [ta, tb].forEach(function (t) { t.say('SWAPPED!', G.PAL.yellow); });
+    G.sfx('big');
   }
 
   function openMenu(kind, by) {
@@ -171,6 +195,7 @@
     }
     // play
     S.sides.forEach(function (s) { if (s.track) s.track.update(dt, s.pad); });
+    if (S.swapGames) { S.swapGames = false; swapGames(); }
     var a = S.sides[0].track, b = S.sides[1].track;
     if (S.mode === 'side') {
       S.sides.forEach(function (s) {

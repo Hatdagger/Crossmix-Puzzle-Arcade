@@ -98,6 +98,8 @@
     if (opts.cpuLevel) this.cpu = new G.BrickCPU(this, opts.cpuLevel, cpuBonus);
   }
   var P = Climb.prototype = Object.create(G.Brick.prototype);
+  P.fxRemove = null; P.fxGravity = null;
+  P.fxWipe = function () { this.stage--; this.newStage(); };   // Clear Field: the stage starts over
   P.constructor = Climb;
 
   P.newStage = function () {

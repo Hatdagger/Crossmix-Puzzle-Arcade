@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.7
+# Crossmix Puzzle Arcade — prototype v0.8
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -16,7 +16,8 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 | **Pop** | Puzzle Bobble: aim with left/right (hold B for fine aim; a dotted line shows the whole path, bounces included), fire with A, D or Up, C swaps with the next bubble. 3+ of a colour pop; bubbles left hanging drop. Only drops attack: every 2 dropped = 1 unit (x0.85), all clear +3. The ceiling comes down every 12 shots (one fewer every 30 s, down to 7); if you don't fire for 8 s it fires for you. Takes units as grey bubbles (2 per unit) stuck under the cluster; a grey breaks when a bubble next to it pops, and every 8 units taken also bring the ceiling down a row | In v0.4 |
 | **Grab** | Magical Drop: balls hang from the ceiling and a new row pushes down every few seconds (faster over time; the PUSH bar shows when). Move the grabber left/right; A, C or Down grabs the lowest run of one colour from the column above (keep grabbing more of the same colour), B, D or Up throws them back up under any column. 3+ of a colour in a column clears, plus every ball of that colour touching them; balls below move up and can chain. Clearing again within 1.5 s of the last clear is a combo. Takes units as extra rows pushed in from the top (1.75 rows per unit) | In v0.6 |
 | **Nom Nom! Pets** | Baku Baku: pairs of blocks fall (A/B turn the pair, D or Up drops). Each block is a pet's head or a food: dog + bone, cat + fish, bunny + carrot, mouse + cheese. A head touching its own food eats that food and all matching food connected to it. A rare coin clears every block of the kind it lands on. Blocks that fall afterwards can chain. Heads get a little rarer every 30 s. Takes units as wrapped food dropped on top (5 per unit); a wrapped block can't be eaten until something next to it is eaten | In v0.7 |
-| Power Brick, Arsenal | Tetris Battle Gaiden, Battle Blocks X, on the Brick engine | Planned |
+| **Arsenal** | Battle Blocks X, on the Brick engine (no hold, 1 next piece, short lock, no T-spin/combo/all-clear bonuses, no cancelling). Every single-line clear turns a random brick into a weapon letter; clearing its row collects it (one copy per line in that clear) into 8 slots, used front first. **C** fires the front weapon at player 1, **D** at player 2 (on the left side C is you), **Select** throws it away, **Up** hard drops. A weapon that can't work on the opponent's puzzle has a red X: hold it or throw it. Arsenal vs Arsenal sends no garbage; in mixed matches 2/3/4 lines send 0/1/2 | In v0.8 |
+| Power Brick | Tetris Battle Gaiden, Brick engine | Planned |
 
 ## Modes
 
@@ -86,6 +87,21 @@ no build step and nothing to install. Open `index.html` in Chrome, Edge or Firef
 | Select | Back on menus | Back on menus | Backspace | + |
 
 Gamepads: first pad is 1P, second is 2P. A B X Y = Neo Geo A B C D, Back = Select.
+
+## Arsenal weapons
+
+Weapons work on every puzzle, not just brick fields:
+
+| Weapon | Effect |
+|---|---|
+| Clear Field (C) | The board goes back to how it looked at the start of the match (Climb: the stage starts over) |
+| Empty Inventory (E) | Empties an Arsenal player's weapons (Power Brick's powers later) |
+| Add Line (A) | 1 unit of attack |
+| Remove Line (R) | Undoes 1 unit of incoming garbage; if none is coming, removes the line furthest from where that player's pieces come in |
+| Speed Up (U) / Slow Down (D) | x1.25 faster / slower, permanent for that board and stacking (x0.5 to x3); a fresh board starts at normal speed |
+| Gravity (G) | Brick fields: every brick falls straight down |
+| Flip Field (F) | The opponent's whole field is shown upside down for 8 s |
+| Swap (S) | The two players trade games, boards and all (local play only) |
 
 ## How the attack works
 

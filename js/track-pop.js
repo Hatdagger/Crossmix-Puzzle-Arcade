@@ -141,6 +141,10 @@
   var P = Pop.prototype;
   Object.assign(P, G.TrackBase);
 
+  // weapon effects: Clear Field works like an all clear; Remove Line lifts the ceiling one row (furthest from the shooter)
+  P.fxSafe = function () { return this.state === 'aim'; };
+  P.fxWipe = function () { this.grid = emptyGrid(); this.drop = 0; this.fill(CFG.startRows); };
+  P.fxRemove = function () { if (this.drop > 0) this.drop--; };
   P.fill = function (rows) {
     for (var r = 0; r < rows; r++) for (var c = 0; c < rowLen(r); c++) {
       // a little bias toward the neighbour's colour so the opening board has groups to work with

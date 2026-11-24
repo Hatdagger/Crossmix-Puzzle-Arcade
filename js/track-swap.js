@@ -38,6 +38,23 @@
   var P = Swap.prototype;
   Object.assign(P, G.TrackBase);
 
+  // weapon effects: Remove Line breaks up the lowest garbage slab, or else clears the top row of the stack
+  P.fxSafe = function () { return !this.busy(); };
+  P.fxWipe = function () {
+    for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) this.grid[r][c] = null;
+    this.slabs = []; this.groups = [];
+    this.fillStart();
+  };
+  P.fxRemove = function () {
+    var g = this.grid, r, c;
+    if (!this.slabs.length) {
+      for (r = 0; r < ROWS; r++) if (g[r].some(function (b) { return b; })) { for (c = 0; c < COLS; c++) g[r][c] = null; return; }
+      return;
+    }
+    var low = this.slabs.reduce(function (a, b) { return b.r + b.h > a.r + a.h ? b : a; });
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (g[r][c] && g[r][c].slab === low) g[r][c] = null;
+    this.slabs.splice(this.slabs.indexOf(low), 1);
+  };
   P.block = function (k) { return { k: k, st: 'idle', t: 0, chain: false, slab: null, mv: -1, sw: 0 }; };
   P.colorAt = function (r, c) { var b = r >= 0 && r < ROWS && c >= 0 && c < COLS ? this.grid[r][c] : null; return b && !b.slab ? b.k : -1; };
   P.fillStart = function () {
