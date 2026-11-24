@@ -16,7 +16,7 @@ Two players each pick a puzzle game (a *track*) and fight on a split screen. Eve
 | Jewel | Columns (6x13 well, diagonals count) | 1 rock row rising from the bottom, one gap per batch; rocks break next to clears |
 | Pop | Puzzle Bobble (8-wide hex field; sends 1 unit per 2 bubbles dropped, x0.85; popping alone sends nothing) | 2 grey bubbles stuck under the cluster; a grey breaks next to a pop; the ceiling drops a row every 8 units taken (and every 12 shots anyway, speeding up to 7) |
 | Grab | Magical Drop (7x12, grab the lowest run of a colour, throw it under any column; 3+ in a column clears with everything of that colour touching it) | 1.75 rows pushed in from the top; own rows push every 9 s, 0.6 s faster every 20 s, down to 2.6 s |
-| Nom Nom! Pets | Baku Baku | Half a row of food on top |
+| Nom Nom! Pets | Baku Baku (6x12, falling pairs; a pet's head eats the connected food of its kind; a coin clears every block of the kind it lands on; heads get rarer every 30 s) | 5 wrapped food blocks on top (wrapped food unwraps when something next to it is eaten; half a row was far too weak) |
 | Power Brick | Tetris Battle Gaiden, Brick engine | Garbage row, plus a power meter |
 | Climb | Tetris Plus, Brick engine | 1 garbage row from below, lifting the stack and the professor (Climb vs Climb is a race instead: same stage, same pieces) |
 | Arsenal | Battle Blocks X, Brick engine | Garbage row; weapons from letters |
@@ -39,7 +39,7 @@ Versus CPU, Versus 2P (best of 3), Survival, Side by Side (no attacks, either pl
 
 Survival with drop-in challengers, run by `tools/lan-server.js` and `js/net.js`. Settings: CHALLENGES ON/OFF and MY SIDE LEFT/RIGHT only; matchmaking runs in the background.
 - Host keeps their board; the challenger's board clears and counts in. One round.
-- Challenger takes half garbage until a big move (`mark('big')`: Brick/Climb all clear, T-spin, 4 lines; Jewel/Calm chain or 5+; Swap chain or 4+ combo; Pop 4+ dropped or all clear; Grab chain, 6+ balls or 3x combo) or 14 pieces/moves (`mark('piece')`).
+- Challenger takes half garbage until a big move (`mark('big')`: Brick/Climb all clear, T-spin, 4 lines; Jewel/Calm chain or 5+; Swap chain or 4+ combo; Pop 4+ dropped or all clear; Grab chain, 6+ balls or 3x combo; Nom Nom! Pets chain, 7+ eaten or coin clearing 6+) or 14 pieces/moves (`mark('piece')`).
 - Loser may ask to run it back; winner accepts or declines. Round 2: loser's board resets. 1-1 goes to round 3 with both boards cleared. Max 3 rounds.
 - Winner stays on (priority for the next match); loser starts a fresh Survival.
 - Netplay: inputs only, fixed 60 steps/s; the other side replays them on a copy of the board (same seed).

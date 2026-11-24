@@ -65,7 +65,7 @@ jobs:
           xvfb-run -a app/src-tauri/target/release/crossmix > app.log 2>&1 &
           sleep 12
           cat app.log
-          curl -sf http://127.0.0.1:8080/ | grep -q "<canvas" && curl -sf http://127.0.0.1:8080/js/track-grab.js > /dev/null && echo "APP HOSTS AND SERVES THE GAME"
+          curl -sf http://127.0.0.1:8080/ | grep -q "<canvas" && curl -sf http://127.0.0.1:8080/js/track-nomnom.js > /dev/null && echo "APP HOSTS AND SERVES THE GAME"
       - name: Test run (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -74,7 +74,7 @@ jobs:
           Start-Sleep -Seconds 15
           $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/
           if ($r.Content -notmatch '<canvas') { throw 'game page not served' }
-          Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/js/track-grab.js | Out-Null
+          Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/js/track-nomnom.js | Out-Null
           Write-Output 'APP HOSTS AND SERVES THE GAME'
           Stop-Process -Name "Crossmix-$env:V" -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
