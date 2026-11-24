@@ -609,15 +609,32 @@ void swap_draw(Track *t, int ox)
     BYTE lit, flashOn = (BYTE)((frames_now() >> 2) & 1);
     for (y = 0; y < VIS * 2; y++) { cv_put(fx - 1, FY + y, TW(PAL_STEEL, TB3(T_FR_L))); cv_put(fx + COLS * 2, FY + y, TW(PAL_STEEL, TB3(T_FR_R))); }
     if (S->panicT > 0 && (frames_now() & 4)) { cv_put(fx - 1, FY, TW(PAL_RED, TB3(T_FR_L))); cv_put(fx + COLS * 2, FY, TW(PAL_RED, TB3(T_FR_R))); }
-    for (r = HID; r < ROWS; r++) for (c = 0; c < COLS; c++) {
+    for (r = HID; r < ROWS; r++) {
+        const SBYTE *kr = S->k[r];
+        const BYTE *sr = S->st[r];
         y = FY + (r - HID) * 2 - off;
-        lit = 0;
-        if (!t->dead && r == S->cr && c == S->cc) lit = 1 | 4;
-        if (!t->dead && r == S->cr && c == S->cc + 1) lit = 2 | 8;
-        if (S->k[r][c] == -1) { cell(fx + c * 2, y, PAL_STEEL, C_EMPTY16, C_LITEMPTY, lit, ymin, ymax); continue; }
-        if (S->k[r][c] == -2) { cell(fx + c * 2, y, PAL_GREY, C_STONE, C_STONELIT, lit, ymin, ymax); continue; }
-        if (S->st[r][c] == PS_CLEAR && flashOn) { cell(fx + c * 2, y, PAL_WHITE, C_FLASH, C_FLASH, 0, ymin, ymax); continue; }
-        cell(fx + c * 2, y, KPAL[S->k[r][c]], C_SQ(KSYM[S->k[r][c]]), C_SQLIT(KSYM[S->k[r][c]]), lit, ymin, ymax);
+        if (y >= ymin && y + 1 <= ymax) {
+            /* whole row on screen: write the 2x2 tiles straight into the canvas rows */
+            WORD *p0 = cv_row[y] + fx, *p1 = cv_row[y + 1] + fx, w;
+            for (c = 0; c < COLS; c++, p0 += 2, p1 += 2) {
+                if (kr[c] == -1) w = TW(PAL_STEEL, TB4(C_EMPTY16));
+                else if (kr[c] == -2) w = TW(PAL_GREY, TB4(C_STONE));
+                else if (sr[c] == PS_CLEAR && flashOn) w = TW(PAL_WHITE, TB4(C_FLASH));
+                else w = TW(KPAL[kr[c]], TB4(C_SQ(KSYM[kr[c]])));
+                p0[0] = w; p0[1] = (WORD)(w + 1); p1[0] = (WORD)(w + 2); p1[1] = (WORD)(w + 3);
+            }
+            if (t->dead || r != S->cr) continue;
+        }
+        for (c = 0; c < COLS; c++) {
+            lit = 0;
+            if (!t->dead && r == S->cr && c == S->cc) lit = 1 | 4;
+            if (!t->dead && r == S->cr && c == S->cc + 1) lit = 2 | 8;
+            if (y >= ymin && y + 1 <= ymax && !lit) continue;
+            if (kr[c] == -1) { cell(fx + c * 2, y, PAL_STEEL, C_EMPTY16, C_LITEMPTY, lit, ymin, ymax); continue; }
+            if (kr[c] == -2) { cell(fx + c * 2, y, PAL_GREY, C_STONE, C_STONELIT, lit, ymin, ymax); continue; }
+            if (sr[c] == PS_CLEAR && flashOn) { cell(fx + c * 2, y, PAL_WHITE, C_FLASH, C_FLASH, 0, ymin, ymax); continue; }
+            cell(fx + c * 2, y, KPAL[kr[c]], C_SQ(KSYM[kr[c]]), C_SQLIT(KSYM[kr[c]]), lit, ymin, ymax);
+        }
     }
     /* garbage still above the top: a red marker over the column */
     for (r = 0; r < HID; r++) for (c = 0; c < COLS; c++) if (S->k[r][c] == -2) cv_put(fx + c * 2, 0, TW(PAL_RED, TB3('V')));

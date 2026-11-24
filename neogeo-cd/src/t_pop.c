@@ -47,10 +47,11 @@ static const BYTE KPAL[NC] = { PAL_RED, PAL_BLUE, PAL_GREEN, PAL_YELLOW, PAL_VIO
 #define P (&t->u.p)
 typedef SBYTE Grid[MAXR][COLS];
 
-static int row_len(int r) { return (r & 1) ? COLS - 1 : COLS; }
-static int cell_x(int r, int c) { return R + c * D + ((r & 1) ? R : 0); }
-static int cell_y(int r) { return R + r * RH; }
-static BYTE in_grid(int r, int c) { return (BYTE)(r >= 0 && r < MAXR && c >= 0 && c < row_len(r)); }
+/* macros, not functions: these run thousands of times a frame and a 68000 call is slow */
+#define row_len(r) (((r) & 1) ? COLS - 1 : COLS)
+#define cell_x(r, c) (R + (c) * D + (((r) & 1) ? R : 0))
+#define cell_y(r) (R + (r) * RH)
+#define in_grid(r, c) ((r) >= 0 && (r) < MAXR && (c) >= 0 && (c) < row_len(r))
 
 static int neighbours(int r, int c, SBYTE out[6][2])
 {
