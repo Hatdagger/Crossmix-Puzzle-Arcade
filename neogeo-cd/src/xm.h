@@ -212,6 +212,9 @@ void cv_text(int x, int y, BYTE pal, const char *s);
 void cv_textc(int x, int w, int y, BYTE pal, const char *s);
 const char *cv_num(DWORD v);
 void cv_cell16(int x, int y, BYTE pal, WORD base, BYTE lit);   /* a 2x2-tile cell; lit = cursor corners */
+/* the same, inline, for cells known to be on screen (field loops) */
+#define CV_CELL16(x, y, pal, base) do { WORD cw_ = TW((pal), TB4(base)), *cp_ = cv_row[(y)] + (x); \
+    cp_[0] = cw_; cp_[1] = (WORD)(cw_ + 1); cp_ = cv_row[(y) + 1] + (x); cp_[0] = (WORD)(cw_ + 2); cp_[1] = (WORD)(cw_ + 3); } while (0)
 void cv_frame(int x, int y, int w, int h, BYTE pal);           /* border around a field (outside the box) */
 void cv_pending(int x, int y, int h, const Track *t, WORD unitPx8, WORD delay);   /* incoming bar, 1 column */
 void cv_field_bg(int x, int y, int w, int h);

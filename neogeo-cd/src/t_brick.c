@@ -1217,14 +1217,18 @@ static void draw_climb(Track *t, int ox)
     BYTE c, ceil = B->ceil;
     const Prof *p = &B->prof;
     cv_frame(fx, FY, COLS, FIELD_H, PAL_STEEL);
-    for (y = 0; y < FIELD_H; y++) for (x = 0; x < COLS; x++) {
+    cell_word(0);
+    for (y = 0; y < FIELD_H; y++) {
+        WORD *p = cv_row[FY + y] + fx;
+        const BYTE *g;
         r = TOP + y;
-        c = B->grid[r][x];
-        if (y < ceil - 1) cv_put(fx + x, FY + y, TW(PAL_STEEL, TB3((x == 2 || x == 7) ? T_CHAIN : T_CEIL)));
-        else if (y == ceil - 1) cv_put(fx + x, FY + y, TW(PAL_STEEL, TB3(T_SPIKES)));
-        else if (B->clearT && (B->clearRows & (1UL << r))) cv_put(fx + x, FY + y, TW(PAL_WHITE, TB3(T_SOLID)));
-        else cv_put(fx + x, FY + y, c ? cell_word(c) : TW(PAL_STEEL, TB3(T_EMPTY)));
+        g = B->grid[r];
+        if (y < ceil - 1) { for (x = 0; x < COLS; x++) *p++ = TW(PAL_STEEL, TB3((x == 2 || x == 7) ? T_CHAIN : T_CEIL)); }
+        else if (y == ceil - 1) { for (x = 0; x < COLS; x++) *p++ = TW(PAL_STEEL, TB3(T_SPIKES)); }
+        else if (B->clearT && (B->clearRows & (1UL << r))) { for (x = 0; x < COLS; x++) *p++ = TW(PAL_WHITE, TB3(T_SOLID)); }
+        else for (x = 0; x < COLS; x++) *p++ = CELLW[*g++ & 47];
     }
+    (void)c;
     /* professor (2x2 tiles); bricks fall over him */
     {
         BYTE f = p->state == PS_CLIMB ? 2 : p->state == PS_DEAD ? 4 : p->frame;

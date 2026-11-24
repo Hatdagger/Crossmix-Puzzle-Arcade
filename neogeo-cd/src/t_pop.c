@@ -503,7 +503,7 @@ static void bubble(int x, int y, SBYTE k, int ymin)
 {
     WORD base = k == GREY ? C_GREYBUB : C_BUB(k);
     BYTE pal = k == GREY ? PAL_GREY : KPAL[k];
-    if (y >= ymin) { cv_cell16(x, y, pal, base, 0); return; }
+    if (y >= ymin && y < SCR_H - 1) { CV_CELL16(x, y, pal, base); return; }
     if (y >= ymin) { cv_put(x, y, TW(pal, TB4(base))); cv_put(x + 1, y, TW(pal, TB4(base + 1))); }
     if (y + 1 >= ymin) { cv_put(x, y + 1, TW(pal, TB4(base + 2))); cv_put(x + 1, y + 1, TW(pal, TB4(base + 3))); }
 }
@@ -523,7 +523,7 @@ void pop_draw(Track *t, int ox)
         if (k < 0) continue;
         x = fx + (cell_x(r, c) - R) / 8; y = FY + (cell_y(r) - R) / 8 + P->drop * 2;
         if (y >= ly) continue;
-        if (P->state == ST_POP && P->mark[r][c] && flashOn) { cv_cell16(x, y, PAL_WHITE, C_FLASH, 0); continue; }
+        if (P->state == ST_POP && P->mark[r][c] && flashOn) { CV_CELL16(x, y, PAL_WHITE, C_FLASH); continue; }
         bubble(x, y, k, FY);
     }
     if (!t->dead) {

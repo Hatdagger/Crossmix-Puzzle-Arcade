@@ -484,10 +484,10 @@ void calm_draw(Track *t, int ox)
         else if (!C->dragOn && !t->dead && C->state == ST_IDLE && r == C->cr && c == C->cc) lit = 1;
         if (C->dragOn && C->pvCount && C->pvHit[sy][sx]) lit = 1;
         pal = KPAL[k];
-        if (C->dying[r][c] && C->state == ST_CLEAR) { cv_cell16(fx + sx * 2, FY + sy * 2, PAL_WHITE, C_FLASH, 0); continue; }
+        if (C->dying[r][c] && C->state == ST_CLEAR) { CV_CELL16(fx + sx * 2, FY + sy * 2, PAL_WHITE, C_FLASH); continue; }
         if (C->pop[r][c] & 4) pal = PAL_WHITE;
-        if (k == STONE) cv_cell16(fx + sx * 2, FY + sy * 2, PAL_GREY, lit ? C_STONELIT : C_STONE, 0);
-        else cv_cell16(fx + sx * 2, FY + sy * 2, pal, lit ? C_SQLIT(k) : C_SQ(k), 0);
+        if (k == STONE) CV_CELL16(fx + sx * 2, FY + sy * 2, PAL_GREY, lit ? C_STONELIT : C_STONE);
+        else CV_CELL16(fx + sx * 2, FY + sy * 2, pal, lit ? C_SQLIT(k) : C_SQ(k));
     }
     cv_pending(ox + 1, FY, ROWS * 2, t, (ROWS * 16) / MAX_STONES, STONE_DELAY);
     /* moves, score, timer */

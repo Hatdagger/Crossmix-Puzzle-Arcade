@@ -369,8 +369,8 @@ void jewel_cpu(Track *t, Pad *pad, WORD dt)
 /* ---------------------------------------------------------------- drawing */
 static void gem(int x, int y, SBYTE k)
 {
-    if (k == ROCK) cv_cell16(x, y, PAL_GREY, C_STONE, 0);
-    else cv_cell16(x, y, KPAL[k], C_SQ(k), 0);
+    if (k == ROCK) CV_CELL16(x, y, PAL_GREY, C_STONE);
+    else CV_CELL16(x, y, KPAL[k], C_SQ(k));
 }
 
 void jewel_draw(Track *t, int ox)
@@ -380,8 +380,8 @@ void jewel_draw(Track *t, int ox)
     for (r = 0; r < ROWS * 2; r++) { cv_put(fx - 1, FY + r, TW(PAL_STEEL, TB3(T_FR_L))); cv_put(fx + COLS * 2, FY + r, TW(PAL_STEEL, TB3(T_FR_R))); }
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
         SBYTE k = J->grid[r][c];
-        if (k < 0) { cv_cell16(fx + c * 2, FY + r * 2, PAL_STEEL, C_EMPTY16, 0); continue; }
-        if (J->state == ST_FLASH && J->hits[r][c] && flashOn) { cv_cell16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH, 0); continue; }
+        if (k < 0) { CV_CELL16(fx + c * 2, FY + r * 2, PAL_STEEL, C_EMPTY16); continue; }
+        if (J->state == ST_FLASH && J->hits[r][c] && flashOn) { CV_CELL16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH); continue; }
         gem(fx + c * 2, FY + r * 2, k);
     }
     if (J->hasPiece && !t->dead) {

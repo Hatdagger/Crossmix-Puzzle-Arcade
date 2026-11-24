@@ -35,6 +35,7 @@
 
 enum { ST_FALL, ST_FLASH, ST_SETTLE, ST_OVER };
 static const BYTE TINT[NK] = { PAL_ORANGE, PAL_BLUE, PAL_PINK, PAL_YELLOW };
+static const BYTE FOODPAL[NK] = { PAL_BEIGE, PAL_BLUE, PAL_ORANGE, PAL_YELLOW };   /* bone, fish, carrot, cheese */
 static const SBYTE OFS[4][2] = { {-1,0}, {0,1}, {1,0}, {0,-1} };
 
 #define N (&t->u.n)
@@ -421,11 +422,11 @@ void nom_cpu(Track *t, Pad *pad, WORD dt)
 /* ---------------------------------------------------------------- drawing */
 static void block(int x, int y, BYTE v)
 {
-    if (v == EMPTY) return;
-    if (v == COIN) cv_cell16(x, y, PAL_AMBER, C_COIN, 0);
-    else if (is_head(v)) cv_cell16(x, y, TINT[v - 10], C_HEAD(v - 10), 0);
-    else if (is_wrap(v)) cv_cell16(x, y, TINT[v - 20], C_WRAP, 0);
-    else cv_cell16(x, y, TINT[v], C_FOOD(v), 0);
+    if (v == EMPTY || y < 0 || y >= SCR_H - 1) return;
+    if (v == COIN) CV_CELL16(x, y, PAL_AMBER, C_COIN);
+    else if (is_head(v)) CV_CELL16(x, y, TINT[v - 10], C_HEAD(v - 10));
+    else if (is_wrap(v)) CV_CELL16(x, y, TINT[v - 20], C_WRAP);
+    else CV_CELL16(x, y, FOODPAL[v], C_FOOD(v));
 }
 
 void nom_draw(Track *t, int ox)
@@ -435,8 +436,8 @@ void nom_draw(Track *t, int ox)
     for (y = 0; y < ROWS * 2; y++) { cv_put(fx - 1, FY + y, TW(PAL_PINK, TB3(T_FR_L))); cv_put(fx + COLS * 2, FY + y, TW(PAL_PINK, TB3(T_FR_R))); }
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) {
         BYTE v = N->grid[r][c];
-        if (v == EMPTY) { cv_cell16(fx + c * 2, FY + r * 2, PAL_STEEL, C_EMPTY16, 0); continue; }
-        if (N->state == ST_FLASH && N->hits[r][c] && flashOn) { cv_cell16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH, 0); continue; }
+        if (v == EMPTY) { CV_CELL16(fx + c * 2, FY + r * 2, PAL_STEEL, C_EMPTY16); continue; }
+        if (N->state == ST_FLASH && N->hits[r][c] && flashOn) { CV_CELL16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH); continue; }
         block(fx + c * 2, FY + r * 2, v);
     }
     cv_put(fx + SPAWN_C * 2, FY, TW(PAL_RED, TB3(T_DOT)));

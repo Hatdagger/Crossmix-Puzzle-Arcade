@@ -587,7 +587,7 @@ void swap_cpu(Track *t, Pad *pad, WORD dt)
 static void cell(int x, int y, BYTE pal, WORD base, WORD litBase, BYTE lit, int ymin, int ymax)
 {
     int q;
-    if (!lit && y >= ymin && y + 1 <= ymax) { cv_cell16(x, y, pal, base, 0); return; }
+    if (!lit && y >= ymin && y + 1 <= ymax) { CV_CELL16(x, y, pal, base); return; }
     for (q = 0; q < 4; q++) {
         int yy = y + (q >> 1);
         if (yy < ymin || yy > ymax) continue;

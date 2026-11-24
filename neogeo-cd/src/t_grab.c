@@ -394,11 +394,11 @@ void grab_draw(Track *t, int ox)
         SBYTE k = G->grid[r][c];
         if (k < 0) {
             BYTE beam = (BYTE)(G->beam && c == G->beamCol);
-            cv_cell16(fx + c * 2, FY + r * 2, beam ? PAL_WHITE : (c == G->pos ? PAL_BLUE : PAL_STEEL), C_EMPTY16, 0);
+            CV_CELL16(fx + c * 2, FY + r * 2, beam ? PAL_WHITE : (c == G->pos ? PAL_BLUE : PAL_STEEL), C_EMPTY16);
             continue;
         }
-        if (G->state == ST_FLASH && G->hits[r][c] && flashOn) { cv_cell16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH, 0); continue; }
-        cv_cell16(fx + c * 2, FY + r * 2, KPAL[k], C_BUB(k), 0);
+        if (G->state == ST_FLASH && G->hits[r][c] && flashOn) { CV_CELL16(fx + c * 2, FY + r * 2, PAL_WHITE, C_FLASH); continue; }
+        CV_CELL16(fx + c * 2, FY + r * 2, KPAL[k], C_BUB(k));
     }
     /* danger line + grabber */
     for (c = 0; c < COLS * 2; c++) cv_put(fx + c, FY + ROWS * 2, TW(PAL_RED, TB3(T_DANGER)));
