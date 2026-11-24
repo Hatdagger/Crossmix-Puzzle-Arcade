@@ -51,13 +51,14 @@ static SBYTE color_at(const Track *t, int r, int c)
 static void put_block(Track *t, int r, int c, SBYTE k)
 {
     S->k[r][c] = k; S->st[r][c] = PS_IDLE; S->tm[r][c] = 0; S->chainf[r][c] = 0; S->slabOf[r][c] = 0xff; S->grpOf[r][c] = 0xff; S->mv[r][c] = 0;
-    S->dirty = 1;
+    S->dirty = 1; S->dRows |= (WORD)(1 << r); S->dCols |= (BYTE)(1 << c);
 }
 static void clear_cell(Track *t, int r, int c) { put_block(t, r, c, -1); }
 static void move_cell(Track *t, int r1, int c1, int r2, int c2)
 {
     S->k[r2][c2] = S->k[r1][c1]; S->st[r2][c2] = S->st[r1][c1]; S->tm[r2][c2] = S->tm[r1][c1];
     S->chainf[r2][c2] = S->chainf[r1][c1]; S->slabOf[r2][c2] = S->slabOf[r1][c1]; S->grpOf[r2][c2] = S->grpOf[r1][c1]; S->mv[r2][c2] = S->mv[r1][c1];
+    S->dRows |= (WORD)(1 << r2); S->dCols |= (BYTE)(1 << c2);
     clear_cell(t, r1, c1);
 }
 
@@ -112,7 +113,7 @@ static void try_swap(Track *t)
     S->k[r][c] = S->k[r][c + 1]; S->st[r][c] = S->st[r][c + 1];
     S->k[r][c + 1] = tk; S->st[r][c + 1] = tst;
     S->chainf[r][c] = 0; S->chainf[r][c + 1] = 0;
-    S->dirty = 1;
+    S->dirty = 1; S->dRows |= (WORD)(1 << r); S->dCols |= (BYTE)(3 << c);
     trk_sfx(t, S_ROTATE);
 }
 
@@ -140,11 +141,12 @@ static BYTE slab_can_fall(const Track *t, const Slab *s)
     return 1;
 }
 
-static void mark_hang(Track *t)
+static void mark_hang(Track *t, BYTE cols)
 {
     int r, c, rr;
     SWORD tt;
     for (r = ROWS - 2; r >= 0; r--) for (c = 0; c < COLS; c++) {
+        if (!(cols & (1 << c))) continue;
         if (S->k[r][c] < 0 || S->st[r][c] != PS_IDLE) continue;
         if (S->k[r + 1][c] != -1 && !is_moving(t, r + 1, c)) continue;
         tt = (S->k[r + 1][c] >= 0 && S->st[r + 1][c] == PS_HANG) ? S->tm[r + 1][c] : HANG;
@@ -171,9 +173,9 @@ static void fall_step(Track *t)
         }
         if (S->st[r][c] != PS_FALL) continue;
         if (S->k[r + 1][c] == -1) { move_cell(t, r, c, r + 1, c); S->mv[r + 1][c] = tick; }
-        else if (S->k[r + 1][c] == -2 || (S->st[r + 1][c] != PS_FALL && S->st[r + 1][c] != PS_HANG)) { S->st[r][c] = PS_IDLE; S->dirty = 1; }
+        else if (S->k[r + 1][c] == -2 || (S->st[r + 1][c] != PS_FALL && S->st[r + 1][c] != PS_HANG)) { S->st[r][c] = PS_IDLE; S->dirty = 1; S->dRows |= (WORD)(1 << r); S->dCols |= (BYTE)(1 << c); }
     }
-    for (c = 0; c < COLS; c++) if (S->k[ROWS - 1][c] >= 0 && S->st[ROWS - 1][c] == PS_FALL) { S->st[ROWS - 1][c] = PS_IDLE; S->dirty = 1; }
+    for (c = 0; c < COLS; c++) if (S->k[ROWS - 1][c] >= 0 && S->st[ROWS - 1][c] == PS_FALL) { S->st[ROWS - 1][c] = PS_IDLE; S->dirty = 1; S->dRows |= (WORD)(1 << (ROWS - 1)); S->dCols |= (BYTE)(1 << c); }
 }
 
 /* ---------------------------------------------------------------- matching */
@@ -188,7 +190,7 @@ static void attack(Track *t, WORD units)
 
 static SBYTE idle_k(const Track *t, int r, int c) { return (SBYTE)(S->k[r][c] >= 0 && S->st[r][c] == PS_IDLE ? S->k[r][c] : -1); }
 
-static void check_matches(Track *t)
+static void check_matches(Track *t, WORD rows, BYTE cols)
 {
     BYTE hit[ROWS][COLS];
     int r, c, e, q, n = 0, g;
@@ -196,10 +198,11 @@ static void check_matches(Track *t)
     BYTE isChain = 0;
     Grp *gp = 0;
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) hit[r][c] = 0;
-    for (r = 0; r < ROWS; r++) { c = 0; while (c < COLS) { k = idle_k(t, r, c); e = c + 1; while (e < COLS && idle_k(t, r, e) == k) e++; if (k >= 0 && e - c >= 3) for (q = c; q < e; q++) hit[r][q] = 1; c = e; } }
-    for (c = 0; c < COLS; c++) { r = 0; while (r < ROWS) { k = idle_k(t, r, c); e = r + 1; while (e < ROWS && idle_k(t, e, c) == k) e++; if (k >= 0 && e - r >= 3) for (q = r; q < e; q++) hit[q][c] = 1; r = e; } }
-    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) n += hit[r][c];
+    for (r = 0; r < ROWS; r++) { if (!(rows & (1 << r))) continue; c = 0; while (c < COLS) { k = idle_k(t, r, c); e = c + 1; while (e < COLS && idle_k(t, r, e) == k) e++; if (k >= 0 && e - c >= 3) { for (q = c; q < e; q++) hit[r][q] = 1; n++; } c = e; } }
+    for (c = 0; c < COLS; c++) { if (!(cols & (1 << c))) continue; r = 0; while (r < ROWS) { k = idle_k(t, r, c); e = r + 1; while (e < ROWS && idle_k(t, e, c) == k) e++; if (k >= 0 && e - r >= 3) { for (q = r; q < e; q++) hit[q][c] = 1; n++; } r = e; } }
     if (!n) return;
+    n = 0;
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) n += hit[r][c];
     for (g = 0; g < SW_MAXGRP; g++) if (!S->grp[g].alive) { gp = &S->grp[g]; break; }
     if (!gp) { g = 0; gp = &S->grp[0]; }
     gp->alive = 1; gp->t = (SWORD)(CLEAR_MS + n * 40); gp->n = (BYTE)n; gp->slabs = 0;
@@ -386,17 +389,22 @@ void swap_update(Track *t, Pad *pad, WORD dt)
     handle(t, pad);
     /* the board is only searched again after something moved or changed state */
     was = S->dirty; S->dirty = 0;
+    {
+        /* rows / columns changed since the last check, plus anything changed this frame */
     for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++)
-        if (S->st[r][c] == PS_HANG && S->k[r][c] >= 0) { S->tm[r][c] = (SWORD)(S->tm[r][c] - dt); if (S->tm[r][c] <= 0) { S->st[r][c] = PS_FALL; S->dirty = 1; } }
+        if (S->st[r][c] == PS_HANG && S->k[r][c] >= 0) { S->tm[r][c] = (SWORD)(S->tm[r][c] - dt); if (S->tm[r][c] <= 0) { S->st[r][c] = PS_FALL; S->dirty = 1; S->dRows |= (WORD)(1 << r); S->dCols |= (BYTE)(1 << c); } }
     for (g = 0; g < SW_MAXGRP; g++) if (S->grp[g].alive) { S->grp[g].t = (SWORD)(S->grp[g].t - dt); if (S->grp[g].t <= 0) finish_group(t, g); }
-    if (was || S->dirty) mark_hang(t);
+    if (was || S->dirty) mark_hang(t, S->dCols);
     S->gAcc = (WORD)(S->gAcc + dt);
     while (S->gAcc >= FALL_TICK) { S->gAcc = (WORD)(S->gAcc - FALL_TICK); fall_step(t); }
     if (was || S->dirty) {
-        check_matches(t);
+        WORD rows = S->dRows; BYTE cols = S->dCols;
+        S->dRows = 0; S->dCols = 0;
+        check_matches(t, rows, cols);
         for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if (S->k[r][c] >= 0 && S->chainf[r][c] && S->st[r][c] == PS_IDLE) {
             if (r == ROWS - 1 || S->k[r + 1][c] == -2 || (S->k[r + 1][c] >= 0 && (S->st[r + 1][c] == PS_IDLE || S->st[r + 1][c] == PS_CLEAR))) S->chainf[r][c] = 0;
         }
+    }
     }
     end_chain_if_done(t);
     if (t->vs && t->npend && (!groups_alive(t) || t->pending[0].t >= FORCE_DROP)) drop_garbage(t);

@@ -157,7 +157,8 @@ typedef struct {
     BYTE cr, cc;
     WORD rise;                           /* Q8 pixels (one row = 16 px) */
     SWORD stopT, panicT;
-    BYTE chain, maxChain, raising, carry, tick, dirty;
+    BYTE chain, maxChain, raising, carry, tick, dirty, dCols;
+    WORD dRows;                          /* rows and columns that changed (only they can make new matches) */
     DWORD score, elapsed;
     WORD atkFrac, gAcc;
     SBYTE preview[SW_COLS];
