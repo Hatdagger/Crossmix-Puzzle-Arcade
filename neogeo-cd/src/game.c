@@ -33,6 +33,9 @@ static DWORD demoMs;
 
 WORD frames_now(void) { return fcount; }
 
+/* for the MAME test: what's on screen (screen << 12 | puzzle 1 << 4 | puzzle 0) */
+WORD xm_status;
+
 /* ---------------------------------------------------------------- helpers */
 static DWORD fresh_seed(void)
 {
@@ -407,7 +410,7 @@ static void match_update(WORD dt)
         return;
     }
     /* play */
-    for (i = 0; i < 2; i++) if (active[i]) { xm_think = (BYTE)(((fcount + i) & 1) || !active[i ^ 1]); trk_update(&trk[i], pad_of(i), dt); }
+    for (i = 0; i < 2; i++) { if (active[i]) { xm_think = (BYTE)(((fcount + i) & 1) || !active[i ^ 1]); trk_update(&trk[i], pad_of(i), dt); } game_mark((BYTE)i); }
     xm_think = 1;
     link();
     if (swapPending) { swapPending = 0; swap_games(); }
@@ -525,6 +528,7 @@ void game_frame(WORD in1, WORD in2, WORD dt)
     seedMix += in1 + ((DWORD)in2 << 10);
     pad_feed(&hp[0], in1, dt);
     pad_feed(&hp[1], in2, dt);
+    xm_status = (WORD)((screen << 12) | (kind[1] << 4) | kind[0]);
     switch (screen) {
     case SC_TITLE:  title_frame(dt); break;
     case SC_SELECT: select_frame(); break;
@@ -536,7 +540,7 @@ void game_frame(WORD in1, WORD in2, WORD dt)
             menu = MN_NONE;
         }
         match_update(dt);
-        if (screen == SC_MATCH) match_draw();
+        if (screen == SC_MATCH) { match_draw(); game_mark(2); }
         break;
     }
 }

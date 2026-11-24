@@ -10,4 +10,5 @@ BYTE game_phase(void);
 BYTE game_wins(int i);
 BYTE game_kos(void);
 void game_set_bot(int i, BYTE lv);
+void game_mark(BYTE k);                         /* hw: timing checkpoint (scanline) for the MAME test */
 #endif

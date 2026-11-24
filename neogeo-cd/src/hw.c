@@ -78,6 +78,20 @@ void game_sfx(BYTE side, BYTE id)
     snd_play(SFX_MAP[id], side == 0 ? SND_LEFT : side == 1 ? SND_RIGHT : SND_CENTRE);
 }
 
+/* timing for the MAME test: scanlines used since the frame began, worst case per checkpoint
+   (0 after side 0's update, 1 after side 1's, 2 after drawing, 3 after sending the screen) */
+WORD xm_prof[4];
+static WORD line_used(void)
+{
+    WORD l = (WORD)((*(volatile WORD *)0x3C0006) >> 7);
+    return (WORD)(l >= 0x1F0 ? l - 0x1F0 : l + 16 - 0xF8);
+}
+void game_mark(BYTE k)
+{
+    WORD u = line_used();
+    if (k < 4 && u > xm_prof[k]) xm_prof[k] = u;
+}
+
 static BYTE musicNow;
 void game_music(BYTE track)
 {
@@ -155,6 +169,7 @@ int main(void)
         game_frame(in1, in2, ms);
         if (palWarn) scr[27][39] = TW(PAL_RED, TB3('!'));
         flush();
+        game_mark(3);
     }
     return 0;
 }

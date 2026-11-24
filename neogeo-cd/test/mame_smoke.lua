@@ -3,6 +3,9 @@
 local frames = 0
 local drop = tonumber(os.getenv("XM_DROP_ADDR") or "0") or 0
 local count = tonumber(os.getenv("XM_FRAME_ADDR") or "0") or 0
+local status = tonumber(os.getenv("XM_STATUS_ADDR") or "0") or 0
+local prof = tonumber(os.getenv("XM_PROF_ADDR") or "0") or 0
+local NAMES = { [0] = "brick", "calm", "climb", "jewel", "swap", "pop", "grab", "nom", "arsenal", "power" }
 local last_d, last_c = 0, 0
 local function tick()
   frames = frames + 1
@@ -12,7 +15,14 @@ local function tick()
     if cpu and drop > 0 then
       local sp = cpu.spaces["program"]
       local d, c = sp:read_u32(drop), sp:read_u32(count)
-      print(string.format("XMTEST frame %d: game frames %d (+%d), dropped %d (+%d)", frames, c, c - last_c, d, d - last_d))
+      local st = status > 0 and sp:read_u16(status) or 0
+      local what = (st >> 12) == 2 and (NAMES[st & 15] .. " vs " .. NAMES[(st >> 4) & 15]) or "menu"
+      local p = ""
+      if prof > 0 then
+        p = string.format("  lines: side0 %d side1 %d draw %d sent %d", sp:read_u16(prof), sp:read_u16(prof + 2), sp:read_u16(prof + 4), sp:read_u16(prof + 6))
+        for i = 0, 3 do sp:write_u16(prof + i * 2, 0) end
+      end
+      print(string.format("XMTEST frame %d: game frames %d (+%d), dropped %d (+%d) %s%s", frames, c, c - last_c, d, d - last_d, what, p))
       last_d, last_c = d, c
     end
   end

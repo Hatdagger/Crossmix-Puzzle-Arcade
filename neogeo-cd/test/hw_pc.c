@@ -20,6 +20,7 @@
 static int nsfx;
 void game_sfx(BYTE side, BYTE id) { (void)side; (void)id; nsfx++; }
 void game_music(BYTE track) { (void)track; }
+void game_mark(BYTE k) { (void)k; }
 
 /* ---------------------------------------------------------------- sim */
 static Track A, Bt;
