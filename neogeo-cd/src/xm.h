@@ -202,6 +202,8 @@ void cv_clear(int x, int y, int w, int h);
 /* cv_put is a macro: a function call per tile was too slow on the 68000 */
 #define cv_put(x, y, w) do { int cvx_ = (x), cvy_ = (y); if ((unsigned)cvx_ < SCR_W && (unsigned)cvy_ < SCR_H) scr[cvy_][cvx_] = (w); } while (0)
 extern BYTE xm_think;
+BYTE xm_time_ok(void);              /* hw: is there frame time left for another CPU search step? */
+extern WORD xm_units;               /* search steps taken in this update (the PC harness budgets by count) */
 extern BYTE xm_flush;               /* which part of the screen changed: bit 0 left half, bit 1 right half */               /* CPU players may search this frame (the game alternates the two sides) */
 void cv_fill(int x, int y, int w, int h, WORD word);
 void cv_text(int x, int y, BYTE pal, const char *s);

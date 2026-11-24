@@ -336,7 +336,7 @@ void jewel_cpu(Track *t, Pad *pad, WORD dt)
     }
     if (!k->pass) { k->pass = 1; k->cand = 0; k->have = 0; }
     if (k->pass == 1 && xm_think) {
-        cpu_eval_one(t);
+        do cpu_eval_one(t); while (k->cand < 18 && xm_time_ok());
         if (k->cand >= 18) {
             k->pass = 2;
             if (!k->have) { k->bestC = J->pc; k->bestRot = 0; }

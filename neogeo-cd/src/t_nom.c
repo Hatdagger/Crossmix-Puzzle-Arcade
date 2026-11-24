@@ -402,7 +402,7 @@ void nom_cpu(Track *t, Pad *pad, WORD dt)
     }
     if (k->cand == 0xff) { k->cand = 0; k->have = 0; k->turns = 0; }
     if (k->cand < COLS * 4 && xm_think) {
-        cpu_eval_one(t);
+        do cpu_eval_one(t); while (k->cand < COLS * 4 && xm_time_ok());
         if (k->cand >= COLS * 4) { if (!k->have) { k->bestC = N->pc; k->bestRot = N->prot; } k->c = k->bestC; k->rot = k->bestRot; }
     }
     if (k->tap) { k->tap = 0; pad_feed(pad, 0, dt); return; }

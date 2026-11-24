@@ -21,6 +21,8 @@ static int nsfx;
 void game_sfx(BYTE side, BYTE id) { (void)side; (void)id; nsfx++; }
 void game_music(BYTE track) { (void)track; }
 void game_mark(BYTE k) { (void)k; }
+/* the PC has no scanlines: a fixed number of CPU search steps per update */
+BYTE xm_time_ok(void) { return (BYTE)(++xm_units < 8); }
 
 /* ---------------------------------------------------------------- sim */
 static Track A, Bt;

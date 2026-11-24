@@ -28,6 +28,7 @@ typedef struct { BYTE type, rot; SBYTE x, y; } PieceSpot;
 typedef struct {
     /* CPU (shared by the brick-family tracks) */
     BYTE level, think, tap, fails, rotNow, haveBest, plan;
+    SBYTE xNow;
     SBYTE bestX; BYTE bestRot;
     SBYTE best2X; BYTE best2Rot;
     SDWORD bestSc, best2Sc;
@@ -75,7 +76,7 @@ typedef struct {
 #define CA_COLS 8
 #define CA_ROWS 7
 typedef struct {
-    BYTE level, tap, n, planning, pcell;
+    BYTE level, tap, n, planning, pcell, ptg;
     WORD wait, count;
     SWORD bestSc;
     BYTE best[4], rnd[4];          /* r, c, axis, target */
@@ -133,8 +134,10 @@ typedef struct {
 typedef struct { SBYTE r; BYTE c, w, h, alive; } Slab;
 typedef struct { SWORD t; BYTE alive, n; BYTE slabs; } Grp;   /* slabs: bit per slab */
 typedef struct {
-    BYTE level, tap, n, planning, prow, pcol, nbest;
+    BYTE level, tap, n, planning, prow, pcol, nbest, pdir;
+    SBYTE pto;
     WORD wait, hold;
+    SBYTE snap[SW_ROWS][SW_COLS];
     SWORD bsc[4];
     BYTE bmv[4][3];                /* r, c, to */
     BYTE script[24];

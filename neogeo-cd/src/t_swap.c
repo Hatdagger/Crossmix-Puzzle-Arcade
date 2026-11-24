@@ -475,29 +475,42 @@ static void cpu_keep(SwapCpu *k, SWORD sc, int r, int c, int to)
     if (k->nbest < 4) k->nbest++;
 }
 
-static void cpu_plan_cell(Track *t, int r, int c0)
+/* one (panel, target) try per call; returns 0 when every move has been tried */
+#define NOT_STARTED (-9)
+
+static BYTE cpu_plan_unit(Track *t)
 {
     SwapCpu *k = &S->cpu;
-    Snap m, mm;
-    int c, dir, to, i, rr;
+    Snap mm;
+    int r = k->prow, c = k->pcol, to, i, rr;
     BYTE n, garb;
     SBYTE v;
-    snapshot(t, m);
-    for (c = c0; c <= c0; c++) {
-        if (m[r][c] < 0) continue;
-        for (dir = -1; dir <= 1; dir += 2) for (to = c + dir; to >= 0 && to < COLS; to += dir) {
-            if (m[r][to] == -2 || m[r][to] == -3) break;
-            for (rr = 0; rr < ROWS; rr++) for (i = 0; i < COLS; i++) mm[rr][i] = m[rr][i];
-            v = mm[r][c];
-            if (to > c) for (i = c; i < to; i++) mm[r][i] = mm[r][i + 1];
-            else for (i = c; i > to; i--) mm[r][i] = mm[r][i - 1];
-            mm[r][to] = v;
-            settle(mm);
-            n = match_info(mm, &garb);
-            if (!n) continue;
-            cpu_keep(k, (SWORD)(n * 10 + (n >= 4 ? 25 : 0) + garb * 12 + r - (to > c ? to - c : c - to) * 3), r, c, to);
+    for (;;) {
+        if (k->prow >= ROWS) return 0;
+        r = k->prow; c = k->pcol;
+        if (k->snap[r][c] >= 0) {
+            if (k->pto == NOT_STARTED) { k->pdir = 0; k->pto = (SBYTE)(c - 1); }
+            to = k->pto;
+            if (to >= 0 && to < COLS && k->snap[r][to] != -2 && k->snap[r][to] != -3) break;
+            if (k->pdir == 0) { k->pdir = 1; k->pto = (SBYTE)(c + 1); to = k->pto; if (to < COLS && k->snap[r][to] != -2 && k->snap[r][to] != -3) break; }
         }
+        /* next panel */
+        k->pto = NOT_STARTED;
+        if (++k->pcol >= COLS) { k->pcol = 0; k->prow++; }
     }
+    for (rr = 0; rr < ROWS; rr++) for (i = 0; i < COLS; i++) mm[rr][i] = k->snap[rr][i];
+    v = mm[r][c];
+    if (to > c) for (i = c; i < to; i++) mm[r][i] = mm[r][i + 1];
+    else for (i = c; i > to; i--) mm[r][i] = mm[r][i - 1];
+    mm[r][to] = v;
+    settle(mm);
+    n = match_info(mm, &garb);
+    if (n) cpu_keep(k, (SWORD)(n * 10 + (n >= 4 ? 25 : 0) + garb * 12 + r - (to > c ? to - c : c - to) * 3), r, c, to);
+    /* next target in this direction */
+    k->pto = (SBYTE)(k->pdir ? to + 1 : to - 1);
+    if (k->pdir == 0 && k->pto < 0) { k->pdir = 1; k->pto = (SBYTE)(c + 1); }
+    if (k->pdir == 1 && k->pto >= COLS) { k->pto = NOT_STARTED; if (++k->pcol >= COLS) { k->pcol = 0; k->prow++; } }
+    return 1;
 }
 
 static void cpu_build(Track *t, int r, int c, int to)
@@ -541,10 +554,7 @@ void swap_cpu(Track *t, Pad *pad, WORD dt)
     if (k->hold) { k->hold = k->hold > dt ? (WORD)(k->hold - dt) : 0; pad_feed(pad, B_C, dt); return; }
     if (k->tap) { k->tap = 0; pad_feed(pad, 0, dt); return; }
     if (k->planning) {
-        for (i = 0; i < 1 && k->prow < ROWS && xm_think; i++) {
-            cpu_plan_cell(t, k->prow, k->pcol);
-            if (++k->pcol >= COLS) { k->pcol = 0; k->prow++; }
-        }
+        if (xm_think) while (cpu_plan_unit(t) && xm_time_ok()) ;
         if (k->prow >= ROWS) {
             k->planning = 0;
             if (k->nbest) {
@@ -559,7 +569,7 @@ void swap_cpu(Track *t, Pad *pad, WORD dt)
     k->wait = 0;
     if (!k->n) {
         if (busy(t)) { k->wait = 60; pad_feed(pad, 0, dt); return; }
-        k->planning = 1; k->prow = HID; k->pcol = 0; k->nbest = 0;
+        k->planning = 1; k->prow = HID; k->pcol = 0; k->pto = NOT_STARTED; k->nbest = 0; snapshot(t, k->snap);
         pad_feed(pad, 0, dt); return;
     }
     {
@@ -577,6 +587,7 @@ void swap_cpu(Track *t, Pad *pad, WORD dt)
 static void cell(int x, int y, BYTE pal, WORD base, WORD litBase, BYTE lit, int ymin, int ymax)
 {
     int q;
+    if (!lit && y >= ymin && y + 1 <= ymax) { cv_cell16(x, y, pal, base, 0); return; }
     for (q = 0; q < 4; q++) {
         int yy = y + (q >> 1);
         if (yy < ymin || yy > ymax) continue;

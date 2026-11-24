@@ -81,6 +81,8 @@ void game_sfx(BYTE side, BYTE id)
 /* timing for the MAME test: scanlines used since the frame began, worst case per checkpoint
    (0 after side 0's update, 1 after side 1's, 2 after drawing, 3 after sending the screen) */
 WORD xm_prof[4];
+DWORD xm_psum[4];                     /* sums and counts, for averages */
+WORD xm_pn[4];
 static WORD line_used(void)
 {
     WORD l = (WORD)((*(volatile WORD *)0x3C0006) >> 7);
@@ -89,7 +91,17 @@ static WORD line_used(void)
 void game_mark(BYTE k)
 {
     WORD u = line_used();
-    if (k < 4 && u > xm_prof[k]) xm_prof[k] = u;
+    if (k >= 4) return;
+    if (u > xm_prof[k]) xm_prof[k] = u;
+    xm_psum[k] += u; xm_pn[k]++;
+}
+
+/* CPU players search until this many scanlines of the frame are used; the rest is for drawing */
+#define THINK_LINES 150
+BYTE xm_time_ok(void)
+{
+    if (++xm_units > 400) return 0;           /* safety net if the line counter misbehaves */
+    return (BYTE)(line_used() < THINK_LINES);
 }
 
 static BYTE musicNow;

@@ -424,13 +424,15 @@ void calm_cpu(Track *t, Pad *pad, WORD dt)
         pad_feed(pad, 0, dt); return;
     }
     /* plan a few source cells per frame while thinking */
-    if (!k->n && !k->planning) { k->planning = 1; k->pcell = 0; k->count = 0; k->bestSc = -1; }
+    if (!k->n && !k->planning) { k->planning = 1; k->pcell = 0; k->ptg = 0; k->count = 0; k->bestSc = -1; }
     if (k->planning && xm_think) {
-        for (i = 0; i < 1 && k->pcell < ROWS * COLS; i++, k->pcell++) {
-            r = k->pcell / COLS; c = k->pcell % COLS;
-            for (tg = 0; tg < COLS; tg++) if (tg != c && move_matches(C->grid, r, c, 1, tg)) cpu_add(t, (BYTE)r, (BYTE)c, 1, (BYTE)tg);
-            for (tg = 0; tg < ROWS; tg++) if (tg != r && move_matches(C->grid, r, c, 2, tg)) cpu_add(t, (BYTE)r, (BYTE)c, 2, (BYTE)tg);
-        }
+        do {
+            if (k->pcell >= ROWS * COLS) break;
+            r = k->pcell / COLS; c = k->pcell % COLS; tg = k->ptg;
+            if (tg < COLS) { if (tg != c && move_matches(C->grid, r, c, 1, tg)) cpu_add(t, (BYTE)r, (BYTE)c, 1, (BYTE)tg); }
+            else { tg -= COLS; if (tg != r && move_matches(C->grid, r, c, 2, tg)) cpu_add(t, (BYTE)r, (BYTE)c, 2, (BYTE)tg); }
+            if (++k->ptg >= COLS + ROWS) { k->ptg = 0; k->pcell++; }
+        } while (xm_time_ok());
     }
     if (k->wait > dt) { k->wait = (WORD)(k->wait - dt); pad_feed(pad, 0, dt); return; }
     k->wait = 0;

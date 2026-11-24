@@ -473,12 +473,11 @@ void pop_cpu(Track *t, Pad *pad, WORD dt)
         k->tk = (WORD)((P->shots * 7) % k->every); k->nt = 0; k->haveSwap = 0; k->phase = 1;
     }
     if (k->phase == 1) {
-        for (n = 0; n < 1 && k->tk <= TICKS && xm_think; n++, k->tk = (WORD)(k->tk + k->every)) {
+        for (n = 0; k->tk <= TICKS && xm_think && (n == 0 || xm_time_ok()); n++, k->tk = (WORD)(k->tk + k->every)) {
             keep(k, eval_shot(t, k->tk, P->cur), k->tk);
             if (k->level >= 4 && P->next != P->cur) {
                 SDWORD s2 = eval_shot(t, k->tk, P->next);
                 if (!k->haveSwap || s2 > k->bestSwapSc) { k->bestSwapSc = s2; k->bestSwapTk = k->tk; k->haveSwap = 1; }
-                n++;
             }
         }
         if (k->tk > TICKS) {
@@ -504,6 +503,7 @@ static void bubble(int x, int y, SBYTE k, int ymin)
 {
     WORD base = k == GREY ? C_GREYBUB : C_BUB(k);
     BYTE pal = k == GREY ? PAL_GREY : KPAL[k];
+    if (y >= ymin) { cv_cell16(x, y, pal, base, 0); return; }
     if (y >= ymin) { cv_put(x, y, TW(pal, TB4(base))); cv_put(x + 1, y, TW(pal, TB4(base + 1))); }
     if (y + 1 >= ymin) { cv_put(x, y + 1, TW(pal, TB4(base + 2))); cv_put(x + 1, y + 1, TW(pal, TB4(base + 3))); }
 }

@@ -352,7 +352,7 @@ void grab_cpu(Track *t, Pad *pad, WORD dt)
     if (G->state != ST_PLAY) { pad_feed(pad, 0, dt); return; }
     if (k->tap) { k->tap = 0; pad_feed(pad, 0, dt); return; }
     if (k->n == 1) {           /* planning */
-        if (xm_think) cpu_plan_step(t);
+        if (xm_think) do cpu_plan_step(t); while (k->c2 < COLS && xm_time_ok());
         if (k->c2 >= COLS) {
             k->n = 0;
             if (k->have) {

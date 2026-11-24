@@ -63,6 +63,8 @@ BYTE pad_repeat(const Pad *p, WORD b, WORD delay, WORD rate)
 }
 
 /* ---------------------------------------------------------------- base */
+WORD xm_units;
+
 void trk_sfx(Track *t, BYTE id) { game_sfx(t->side, id); }
 
 void trk_say(Track *t, const char *txt, BYTE pal)
@@ -283,6 +285,7 @@ void trk_update(Track *t, Pad *pad, WORD dt)
         d2 = (WORD)(x >> 8); t->speedAcc = (WORD)(x & 255);
     }
     if (t->cpu && !t->dead) {
+        xm_units = 0;
         switch (t->kind) {
         case TK_CALM:  calm_cpu(t, pad, d2); break;
         case TK_JEWEL: jewel_cpu(t, pad, d2); break;

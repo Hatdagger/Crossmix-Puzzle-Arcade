@@ -825,37 +825,43 @@ static SDWORD eval_place(const Track *t, BYTE type, BYTE rot, int x, int y)
     return sc;
 }
 
-/* one rotation's placements per call (the search is spread over frames) */
-static void cpu_search_step(Track *t)
+/* the search, one column position per step, as many steps as the frame has time for */
+static void cpu_search(Track *t)
 {
     BrickCpu *c = &B->cpu;
-    BYTE type = B->ptype, rot = c->rotNow;
+    BYTE type = B->ptype, rot, nrot = (BYTE)(type == 4 ? 1 : 4);
     int x, y, i, above;
     SDWORD sc;
-    if (rot == 0) load_base_rows(t);
-    for (x = -3; x < COLS; x++) {
-        if (fast_collide(type, rot, x, B->py)) continue;
-        y = B->py;
-        while (!fast_collide(type, rot, x, y + 1)) y++;
-        above = 1;
-        for (i = 0; i < 4; i++) if (y + SH[type][rot][i][1] >= HIDDEN) above = 0;
-        if (above) continue;
-        sc = eval_place(t, type, rot, x, y);
-        if (!c->haveBest || sc > c->bestSc) {
-            if (c->haveBest) { c->best2Sc = c->bestSc; c->best2X = c->bestX; c->best2Rot = c->bestRot; }
-            c->bestSc = sc; c->bestX = (SBYTE)x; c->bestRot = rot; c->haveBest++;
-        } else if (c->haveBest == 1 || sc > c->best2Sc) {
-            c->best2Sc = sc; c->best2X = (SBYTE)x; c->best2Rot = rot; c->haveBest++;
+    load_base_rows(t);
+    do {
+        rot = c->rotNow; x = c->xNow;
+        if (!fast_collide(type, rot, x, B->py)) {
+            y = B->py;
+            while (!fast_collide(type, rot, x, y + 1)) y++;
+            above = 1;
+            for (i = 0; i < 4; i++) if (y + SH[type][rot][i][1] >= HIDDEN) above = 0;
+            if (!above) {
+                sc = eval_place(t, type, rot, x, y);
+                if (!c->haveBest || sc > c->bestSc) {
+                    if (c->haveBest) { c->best2Sc = c->bestSc; c->best2X = c->bestX; c->best2Rot = c->bestRot; }
+                    c->bestSc = sc; c->bestX = (SBYTE)x; c->bestRot = rot; c->haveBest++;
+                } else if (c->haveBest == 1 || sc > c->best2Sc) {
+                    c->best2Sc = sc; c->best2X = (SBYTE)x; c->best2Rot = rot; c->haveBest++;
+                }
+            }
         }
-    }
-    c->rotNow++;
-    if (c->rotNow >= (type == 4 ? 1 : 4)) {
-        c->think = 0;
-        if (c->haveBest) {
-            c->plan = 1;
-            if (c->haveBest > 1 && cpu_rnd(100) < c->mistake) { c->bestX = c->best2X; c->bestRot = c->best2Rot; }
+        if (++c->xNow >= COLS) {
+            c->xNow = -3;
+            if (++c->rotNow >= nrot) {
+                c->think = 0;
+                if (c->haveBest) {
+                    c->plan = 1;
+                    if (c->haveBest > 1 && cpu_rnd(100) < c->mistake) { c->bestX = c->best2X; c->bestRot = c->best2Rot; }
+                }
+                return;
+            }
         }
-    }
+    } while (xm_time_ok());
 }
 
 static BYTE cpu_wait_climb(const Track *t)
@@ -883,15 +889,15 @@ void brick_cpu(Track *t, Pad *pad, WORD dt)
     if (!B->hasPiece) { pad_feed(pad, 0, dt); return; }
     if (t->kind == TK_CLIMB && B->pieceId == c->seen) {
         c->since = (WORD)(c->since + dt);
-        if (c->since > 600 && !c->think) { c->since = 0; c->think = 1; c->rotNow = 0; c->haveBest = 0; c->plan = 0; }
+        if (c->since > 600 && !c->think) { c->since = 0; c->think = 1; c->rotNow = 0; c->xNow = -3; c->haveBest = 0; c->plan = 0; }
     }
     if (B->pieceId != c->seen) {
         c->seen = B->pieceId;
         c->wait = (WORD)((DWORD)CPU_THINK[c->level] * (70 + cpu_rnd(61)) / 100);
         c->since = 0; c->fails = 0;
-        c->think = 1; c->rotNow = 0; c->haveBest = 0; c->plan = 0;
+        c->think = 1; c->rotNow = 0; c->xNow = -3; c->haveBest = 0; c->plan = 0;
     }
-    if (c->think && xm_think) cpu_search_step(t);
+    if (c->think && xm_think) cpu_search(t);
     if (c->tap) { c->tap = 0; pad_feed(pad, 0, dt); return; }
     if (c->wait > dt) c->wait = (WORD)(c->wait - dt); else c->wait = 0;
     if (c->wait || !c->plan) { pad_feed(pad, 0, dt); return; }
@@ -1119,10 +1125,11 @@ void brick_draw(Track *t, int ox)
     BYTE c;
     if (t->kind == TK_CLIMB) { draw_climb(t, ox); return; }
     cv_frame(fx, FY, COLS, ROWS - HIDDEN, PAL_STEEL);
-    for (y = HIDDEN; y < ROWS; y++) for (x = 0; x < COLS; x++) {
-        c = B->grid[y][x];
-        if ((B->clearT && (B->clearRows & (1UL << y)))) cv_put(fx + x, FY + y - HIDDEN, TW(PAL_WHITE, TB3(T_SOLID)));
-        else cv_put(fx + x, FY + y - HIDDEN, c ? cell_word(c) : TW(PAL_STEEL, TB3(T_EMPTY)));
+    for (y = HIDDEN; y < ROWS; y++) {
+        WORD *p = &scr[FY + y - HIDDEN][fx];
+        const BYTE *g = B->grid[y];
+        if (B->clearT && (B->clearRows & (1UL << y))) { for (x = 0; x < COLS; x++) *p++ = TW(PAL_WHITE, TB3(T_SOLID)); continue; }
+        for (x = 0; x < COLS; x++) { c = *g++; *p++ = c ? cell_word(c) : TW(PAL_STEEL, TB3(T_EMPTY)); }
     }
     if (!t->dead && B->hasPiece) {
         SBYTE cs[4][2];

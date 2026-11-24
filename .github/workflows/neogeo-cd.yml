@@ -105,6 +105,8 @@ jobs:
           $env:XM_FRAME_ADDR = Addr "DAT_frameCounter"
           $env:XM_STATUS_ADDR = Addr "xm_status"
           $env:XM_PROF_ADDR = Addr "xm_prof"
+          $env:XM_PSUM_ADDR = Addr "xm_psum"
+          $env:XM_PN_ADDR = Addr "xm_pn"
           Write-Host "droppedFrames at $env:XM_DROP_ADDR, frameCounter at $env:XM_FRAME_ADDR, status at $env:XM_STATUS_ADDR, prof at $env:XM_PROF_ADDR"
           New-Item -ItemType Directory -Force -Path snaps | Out-Null
           $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 600 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz -cdrom roms\neocdz\Crossmix.chd"
