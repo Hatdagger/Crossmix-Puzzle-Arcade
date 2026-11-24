@@ -242,7 +242,7 @@ void grab_init(Track *t)
     G->pos = 3; G->state = ST_PLAY;
     G->lastClear = 0;
     for (i = 0; i < START_ROWS; i++) push_row(t);
-    if (t->cpu) { G->cpu.level = t->cpu; G->cpu.wait = THINK[t->cpu]; G->cpu.two = 0; }
+    if (t->cpu) { G->cpu.level = t->cpu; G->cpu.wait = THINK[t->cpu]; G->cpu.two = (BYTE)(t->cpu >= 3); }
 }
 
 void grab_update(Track *t, Pad *pad, WORD dt)
@@ -320,21 +320,19 @@ static void try_plan(Track *t, const BYTE *cols, BYTE n, BYTE tmask)
     }
 }
 
-/* one throw column per call */
+/* one (throw column, first grab column) pair per call: at most 7 playouts a frame */
 static void cpu_plan_step(Track *t)
 {
     GrabCpu *k = &G->cpu;
-    BYTE cols[3], c1, c3, c2 = k->c2;
+    BYTE cols[3], c3, c2 = k->c2, c1 = k->c1;
     if (G->hn) {
-        cols[0] = c2; try_plan(t, cols, 1, 1);
-        for (c1 = 0; c1 < COLS; c1++) { cols[0] = c1; cols[1] = c2; try_plan(t, cols, 2, 2); }
+        if (c1 == 0) { cols[0] = c2; try_plan(t, cols, 1, 1); }
+        cols[0] = c1; cols[1] = c2; try_plan(t, cols, 2, 2);
     } else {
-        for (c1 = 0; c1 < COLS; c1++) {
-            cols[0] = c1; cols[1] = c2; try_plan(t, cols, 2, 2);
-            if (k->two) for (c3 = 0; c3 < COLS; c3++) if (c3 != c1) { cols[0] = c1; cols[1] = c3; cols[2] = c2; try_plan(t, cols, 3, 4); }
-        }
+        cols[0] = c1; cols[1] = c2; try_plan(t, cols, 2, 2);
+        if (k->two) for (c3 = 0; c3 < COLS; c3++) if (c3 != c1) { cols[0] = c1; cols[1] = c3; cols[2] = c2; try_plan(t, cols, 3, 4); }
     }
-    k->c2++;
+    if (++k->c1 >= COLS) { k->c1 = 0; k->c2++; }
 }
 
 void grab_cpu(Track *t, Pad *pad, WORD dt)
@@ -358,7 +356,7 @@ void grab_cpu(Track *t, Pad *pad, WORD dt)
     if (k->wait > dt) { k->wait = (WORD)(k->wait - dt); pad_feed(pad, 0, dt); return; }
     k->wait = 0;
     if (k->n == 1) { pad_feed(pad, 0, dt); return; }
-    if (!k->planN) { k->n = 1; k->c2 = 0; k->have = 0; pad_feed(pad, 0, dt); return; }
+    if (!k->planN) { k->n = 1; k->c2 = 0; k->c1 = 0; k->have = 0; pad_feed(pad, 0, dt); return; }
     if (G->pos < k->plan[0]) st = B_RIGHT;
     else if (G->pos > k->plan[0]) st = B_LEFT;
     else {

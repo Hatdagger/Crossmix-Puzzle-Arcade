@@ -105,7 +105,7 @@ jobs:
           $env:XM_FRAME_ADDR = Addr "DAT_frameCounter"
           Write-Host "droppedFrames at $env:XM_DROP_ADDR, frameCounter at $env:XM_FRAME_ADDR"
           New-Item -ItemType Directory -Force -Path snaps | Out-Null
-          $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 400 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz Crossmix"
+          $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 400 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz -cdrom roms\neocdz\Crossmix.chd"
           Write-Host "mame64.exe $margs"
           $p = Start-Process -FilePath .\mame64.exe -ArgumentList $margs -NoNewWindow -Wait -PassThru -RedirectStandardOutput mame_out.txt -RedirectStandardError mame_err.txt
           Get-Content mame_out.txt | Select-Object -Last 40
