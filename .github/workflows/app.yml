@@ -57,6 +57,26 @@ jobs:
         run: |
           cd app/src-tauri && npx --yes @tauri-apps/cli@2 build --bundles appimage
           mkdir -p ../../out && cp target/release/bundle/appimage/*.AppImage "../../out/Crossmix-$V.AppImage"
+      # Smoke test: start the real app; on its own it should become the LAN host and serve the game.
+      - name: Test run (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y xvfb > /dev/null
+          xvfb-run -a app/src-tauri/target/release/crossmix > app.log 2>&1 &
+          sleep 12
+          cat app.log
+          curl -sf http://127.0.0.1:8080/ | grep -q "<canvas" && curl -sf http://127.0.0.1:8080/js/track-pop.js > /dev/null && echo "APP HOSTS AND SERVES THE GAME"
+      - name: Test run (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Start-Process -FilePath "out/Crossmix-$env:V.exe"
+          Start-Sleep -Seconds 15
+          $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/
+          if ($r.Content -notmatch '<canvas') { throw 'game page not served' }
+          Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/js/track-pop.js | Out-Null
+          Write-Output 'APP HOSTS AND SERVES THE GAME'
+          Stop-Process -Name "Crossmix-$env:V" -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with:
           name: crossmix-${{ matrix.kind }}
