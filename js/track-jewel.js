@@ -79,6 +79,7 @@
 
   // weapon effects (applied between pieces)
   P.fxSafe = function () { return this.state === 'fall'; };
+  P.fieldRect = function (x, y) { return [x + 30, y + 6, COLS * CELL, ROWS * CELL]; };
   P.fxWipe = function () { this.grid = emptyGrid(); };
   P.fxRemove = function () { this.grid.pop(); var row = []; for (var c = 0; c < COLS; c++) row.push(-1); this.grid.unshift(row); };
   P.newGems = function () { var a = []; for (var i = 0; i < 3; i++) a.push(Math.floor(this.rng() * NC)); return a; };

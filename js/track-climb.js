@@ -99,6 +99,7 @@
   }
   var P = Climb.prototype = Object.create(G.Brick.prototype);
   P.fxRemove = null; P.fxGravity = null;
+  P.fieldRect = function (x, y) { return [x + 37, y + 4, COLS * CELL, FIELD_H * CELL]; };
   P.fxWipe = function () { this.stage--; this.newStage(); };   // Clear Field: the stage starts over
   P.constructor = Climb;
 

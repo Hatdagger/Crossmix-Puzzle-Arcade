@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.8
+# Crossmix Puzzle Arcade — prototype v0.8.1
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -100,7 +100,7 @@ Weapons work on every puzzle, not just brick fields:
 | Remove Line (R) | Undoes 1 unit of incoming garbage; if none is coming, removes the line furthest from where that player's pieces come in |
 | Speed Up (U) / Slow Down (D) | x1.25 faster / slower, permanent for that board and stacking (x0.5 to x3); a fresh board starts at normal speed |
 | Gravity (G) | Brick fields: every brick falls straight down |
-| Flip Field (F) | The opponent's whole field is shown upside down for 8 s |
+| Flip Field (F) | The target's play field is shown upside down for 8 s (text and panels stay upright) |
 | Swap (S) | The two players trade games, boards and all (local play only) |
 
 ## How the attack works

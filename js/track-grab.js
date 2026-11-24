@@ -120,6 +120,7 @@
 
   // weapon effects
   P.fxSafe = function () { return this.state === 'play'; };
+  P.fieldRect = function (x, y) { return [x + 24, y + 6, COLS * CELL, ROWS * CELL + 18]; };
   P.fxWipe = function () { this.grid = emptyGrid(); for (var i = 0; i < CFG.startRows; i++) this.pushRow(true); };
   P.fxRemove = function () { this.grid.shift(); var row = []; for (var c = 0; c < COLS; c++) row.push(-1); this.grid.push(row); };   // the top row, furthest from the grabber
   P.pushEvery = function () { return Math.max(CFG.pushMin, CFG.pushEvery - Math.floor(this.elapsed / CFG.speedUpEvery) * CFG.pushStep); };

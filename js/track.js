@@ -36,6 +36,7 @@
 
   // Every track gets weapon effects without changing its own code: speed scales its clock
   // (Brick-engine tracks scale only the drop speed), flip turns its half of the screen upside down.
+  var flipCanvas = null;
   function wrapFx(t) {
     var up = t.update, dr = t.draw;
     t.update = function (dt, pad) {
@@ -46,10 +47,26 @@
     };
     t.draw = function (x, y) {
       var ctx = G.ctxRef();
-      if (this.flipT > 0) {
-        ctx.save(); ctx.beginPath(); ctx.rect(x, y, 160, 194); ctx.clip();
-        ctx.translate(0, 2 * y + 194); ctx.scale(1, -1);
-        dr.call(this, x, y); ctx.restore();
+      if (this.flipT > 0 && this.fieldRect && ctx.canvas && typeof document !== 'undefined') {
+        // Flip Field: only the play field turns upside down. Text is held back while the track
+        // draws, then written normally (text over the field moves to the mirrored spot).
+        var texts = [], realText = G.text;
+        G.text = function () { texts.push(arguments); };
+        try { dr.call(this, x, y); } finally { G.text = realText; }
+        var r = this.fieldRect(x, y), fx = r[0], fy = r[1], fw = r[2], fh = r[3];
+        var tmp = flipCanvas || (flipCanvas = document.createElement('canvas'));
+        if (tmp.width < fw || tmp.height < fh) { tmp.width = Math.max(tmp.width, fw); tmp.height = Math.max(tmp.height, fh); }
+        var tc = tmp.getContext('2d');
+        tc.clearRect(0, 0, tmp.width, tmp.height);
+        tc.drawImage(ctx.canvas, fx, fy, fw, fh, 0, 0, fw, fh);
+        ctx.save(); ctx.translate(0, 2 * fy + fh); ctx.scale(1, -1);
+        ctx.drawImage(tmp, 0, 0, fw, fh, fx, fy, fw, fh);
+        ctx.restore();
+        texts.forEach(function (a) {
+          var tx = a[1], ty = a[2], th = (G.FONTS[(a[4] && a[4].font) || 'big'] || {}).h || 7;
+          if (tx >= fx && tx <= fx + fw && ty >= fy && ty <= fy + fh) ty = 2 * fy + fh - ty - th;
+          realText(a[0], tx, ty, a[3], a[4]);
+        });
       } else dr.call(this, x, y);
       if (this.speedLv) G.text((this.speedLv > 0 ? 'SPEED +' : 'SPEED ') + this.speedLv, x + 80, y + 186, this.speedLv > 0 ? G.PAL.red : G.PAL.cyan, { font: 'small', align: 'center', shadow: '#000' });
     };

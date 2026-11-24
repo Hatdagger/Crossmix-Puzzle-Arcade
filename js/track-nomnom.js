@@ -94,6 +94,7 @@
 
   // weapon effects
   P.fxSafe = function () { return this.state === 'fall'; };
+  P.fieldRect = function (x, y) { return [x + 30, y + 8, COLS * CELL, ROWS * CELL]; };
   P.fxWipe = function () { this.grid = emptyGrid(); };
   P.fxRemove = function () { this.grid.pop(); var row = []; for (var c = 0; c < COLS; c++) row.push(-1); this.grid.unshift(row); gravity(this.grid); };
   P.newBlock = function () {

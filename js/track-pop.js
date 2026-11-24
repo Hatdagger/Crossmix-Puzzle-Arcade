@@ -143,6 +143,7 @@
 
   // weapon effects: Clear Field works like an all clear; Remove Line lifts the ceiling one row (furthest from the shooter)
   P.fxSafe = function () { return this.state === 'aim'; };
+  P.fieldRect = function (x, y) { return [x + 14, y + 8, W, FH]; };
   P.fxWipe = function () { this.grid = emptyGrid(); this.drop = 0; this.fill(CFG.startRows); };
   P.fxRemove = function () { if (this.drop > 0) this.drop--; };
   P.fill = function (rows) {

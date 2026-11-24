@@ -149,6 +149,7 @@
   P.level = function () { return Math.min(GRAV.length, 1 + Math.floor(this.elapsed / 60000)); };
   P.speedMul = 1;   // set by Speed Up / Slow Down (see wrapFx in track.js)
   // ---------- weapon effects ----------
+  P.fieldRect = function (x, y) { return [x + 40, y + 18, COLS * CELL, (ROWS - HIDDEN) * CELL]; };   // for Flip Field
   P.fxOwnSpeed = true;
   P.fxWipe = function () { for (var y = 0; y < ROWS; y++) this.grid[y] = emptyRow(); };
   P.fxRemove = function () { this.grid.splice(ROWS - 1, 1); this.grid.unshift(emptyRow()); };

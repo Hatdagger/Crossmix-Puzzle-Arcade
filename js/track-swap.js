@@ -40,6 +40,7 @@
 
   // weapon effects: Remove Line breaks up the lowest garbage slab, or else clears the top row of the stack
   P.fxSafe = function () { return !this.busy(); };
+  P.fieldRect = function (x, y) { return [x + 30, y + 10, COLS * CELL, VIS * CELL]; };
   P.fxWipe = function () {
     for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) this.grid[r][c] = null;
     this.slabs = []; this.groups = [];

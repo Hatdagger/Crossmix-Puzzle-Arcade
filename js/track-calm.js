@@ -49,6 +49,7 @@
 
   // weapon effects: Clear Field deals a fresh board, Remove Line turns up to 3 stones back into tiles
   P.fxSafe = function () { return this.state === 'idle'; };
+  P.fieldRect = function (x, y) { return [x + 18, y + 32, COLS * T + 4, ROWS * T + 4]; };
   P.unstone = function (max) {
     var self = this, n = 0;
     this.grid.forEach(function (r) { r.forEach(function (t) { if (t.color === STONE && n < max) { t.color = self.rnd(); t.pop = 300; n++; } }); });
