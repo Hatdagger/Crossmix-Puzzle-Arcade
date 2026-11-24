@@ -1,9 +1,8 @@
-Jewel, Swap and LAN challenges.
+The Crossmix app: one download, automatic LAN play. Plus Pop.
 
-- **Jewel** (Columns style): drop columns of 3 jewels, line up 3+ across, down or diagonally. A/B cycle the jewels, Down is a fast drop, D or Up drops straight down. Incoming attacks rise as rock rows; a rock breaks when a jewel next to it clears.
-- **Swap** (Tetris Attack style): swap panels in a rising stack with a 2-wide cursor (A or B); hold C or D to raise faster. Chains and combos stop the stack for a moment. Incoming attacks drop as garbage slabs; matching next to one turns its bottom row back into panels.
-- **LAN challenges**: turn CHALLENGES ON on the title screen and play SURVIVAL. Other players on your network drop in to challenge you; winner stays on. The challenger starts with half garbage. The loser can ask to run it back (best of 3, tie-breaker on fresh boards). MY SIDE picks your half of the screen.
-  To play over LAN, one PC needs Node.js (nodejs.org): double-click `start-lan-server.bat` (Windows) or run `start-lan-server.sh` (Linux), then everyone opens the address it shows.
-- Climb: 15-row field, bricks that touch the spikes are destroyed; Survival keeps you playing during the CPU changeover.
+- **Crossmix app** for Windows (`.exe`) and Linux (`.AppImage`): double-click on every PC. The first copy on your network becomes the host and the rest join it automatically: no server to start and no address to type. If the host quits, another PC takes over. Challenges are on by default in the app.
+- Phones and tablets on the same network can join from their browser: the host's title screen shows the address.
+- The first time, Windows asks to allow Crossmix on private networks: click **Allow**.
+- **Pop** (Puzzle Bobble style): aim (hold B for fine aim; a dotted line shows the full path, bounces included), fire with A, D or Up, C swaps with the next bubble. Only dropped bubbles attack: every 2 dropped = 1 unit. Incoming attacks stick grey bubbles under your cluster, and every 8 units lower the ceiling.
 
-Unzip and open `index.html` in Chrome, Edge or Firefox (LAN challenges need the server address instead).
+The zip still has the browser version (`index.html`) and the Node.js LAN server for playing without the app.

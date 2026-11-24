@@ -1,4 +1,4 @@
-# Crossmix Puzzle Arcade — prototype v0.4
+# Crossmix Puzzle Arcade — prototype v0.5
 
 A versus puzzle game where **two different puzzle games fight each other**, Puyo Puyo Tetris style. Each puzzle game is a *track*. Every track turns its big moves into a shared attack (**units**) and takes incoming units as its own kind of junk. An entry for the *New Games Ideas* demo disc, made for the **Neo Geo CD** first.
 
@@ -30,11 +30,15 @@ All code and art are original. Only the rules are borrowed in spirit. The full d
 
 Survival can be played over your home network, with other players dropping in to challenge you. The only settings are on the title screen (and the pause menu): **CHALLENGES ON/OFF** and **MY SIDE LEFT/RIGHT** (which half of the screen is yours). Everything else happens in the background.
 
-**Set up (once per session):**
-1. Install [Node.js](https://nodejs.org) on one PC (nothing else to install).
-2. Unzip the release on that PC and double-click `start-lan-server.bat` (Windows) or run `start-lan-server.sh` (Linux). Keep the window open; it shows an address like `http://192.168.1.20:8080/`.
-3. On every PC that wants to play (including that one), open that address in Chrome, Edge or Firefox.
-4. Set **CHALLENGES ON**, then play **SURVIVAL**.
+**Set up: the Crossmix app (easiest).** Download `Crossmix-<version>.exe` (Windows) or `Crossmix-<version>.AppImage` (Linux) from the release and double-click it on every PC. That's all:
+- Each copy looks for a Crossmix game on your network. If there isn't one, it becomes the host; everyone else joins it automatically. Only copies of the same version play together.
+- If the host quits, another PC takes over within a few seconds and play carries on.
+- Challenges are ON by default in the app. The title screen shows the LAN status (bottom left).
+- Phones and tablets on the same network can join too: the host's title screen shows an address (like `192.168.1.20:8080`); open it in the phone's browser.
+- The first time, Windows asks whether to allow Crossmix on private networks: click **Allow**.
+- The Windows app uses the Edge browser engine that's already part of Windows 10 and 11.
+
+**Without the app:** install [Node.js](https://nodejs.org) on one PC, unzip the release there and double-click `start-lan-server.bat` (Windows) or run `start-lan-server.sh` (Linux). Keep the window open, open the address it shows on every PC, set **CHALLENGES ON** and play **SURVIVAL**.
 
 **How challenges work:**
 - You play Survival against CPUs. Whenever two players with challenges on are free, the server matches them. If more people are waiting, the one waiting longest gets the next open spot; the winner of the last challenge goes first.
@@ -42,7 +46,7 @@ Survival can be played over your home network, with other players dropping in to
 - The challenger takes **half garbage** until they make a big move or have played 14 pieces. Big moves: Brick and Climb: all clear, any T-spin or a 4-line clear. Jewel and Calm: a chain or a 5+ match. Swap: a chain or a 4+ combo. Pop: dropping 4+ bubbles at once or an all clear. (Calm counts moves, Swap counts swaps and Pop counts shots instead of pieces.)
 - A challenge is one round. The loser can press A to **run it back**; if the winner accepts, round 2 is played (the loser's board resets). If that makes it 1-1, round 3 starts with both boards cleared.
 - **Winner stays on** and goes back to fighting CPUs until the next challenger. The loser starts a fresh Survival.
-- No pausing during a challenge. Leaving (closing the page) forfeits.
+- No pausing during a challenge. Leaving (closing the page) forfeits. If the server goes away, you're back to CPUs and the game reconnects by itself.
 
 Only button presses cross the network: each PC runs its own board and sends its inputs; the other PC replays them on an exact copy of your board. The GitHub Pages version can't reach a LAN server, so there CHALLENGES ON just plays solo.
 
@@ -60,7 +64,10 @@ Only button presses cross the network: each PC runs its own board and sends its 
 
 ## Run it
 
-No build step and nothing to install. Open `index.html` in Chrome, Edge or Firefox (Windows, Linux, Android). Plug in or pair a controller and press a button on it so the browser sees it. Double-click for fullscreen.
+**The app:** download the `.exe` (Windows) or `.AppImage` (Linux) from the latest release and double-click it. It's the same game, plus automatic LAN play (see above). The app is built by GitHub Actions from `app/` (Tauri; the LAN side is `app/src-tauri/src/lan.rs`, a port of `tools/lan-server.js` with automatic host finding).
+
+**The browser version:** 
+no build step and nothing to install. Open `index.html` in Chrome, Edge or Firefox (Windows, Linux, Android). Plug in or pair a controller and press a button on it so the browser sees it. Double-click for fullscreen.
 
 - **Play in the browser (GitHub Pages):** one-time setup: in the repo go to **Settings → Pages** and set **Source** to **GitHub Actions**. After that every push to `main` updates https://hatdagger.github.io/Crossmix-Puzzle-Arcade/
 - **New release:** change the number in `VERSION` and push; a release with a zip is made automatically.
