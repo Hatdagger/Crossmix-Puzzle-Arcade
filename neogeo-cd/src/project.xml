@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project>
   <name>Crossmix</name>
-  <version>0.9.0</version>
+  <version>0.10.0</version>
   <platform>cd</platform>
   <makefile>Makefile</makefile>
   <neocorePath>..\neocore</neocorePath>

@@ -4,7 +4,7 @@ All ten puzzles from the web prototype, rewritten in C for the Neo Geo CD with [
 
 ## Playing it
 
-Every push builds the disc on GitHub Actions. Each release (for example v0.9.0) has:
+Every push builds the disc on GitHub Actions. Each release (for example v0.10.0) has:
 
 - `Crossmix-<version>-NeoGeoCD-BINCUE.zip`: a BIN/CUE for a real Neo Geo CD (burned disc or optical drive emulator), MiSTer, or any emulator that takes BIN/CUE.
 - `Crossmix-<version>-NeoGeoCD.chd`: the same disc as a CHD for MAME.

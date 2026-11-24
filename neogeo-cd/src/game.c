@@ -253,7 +253,7 @@ static void title_frame(WORD dt)
     cv_put(28, 19, TW(PAL_STEEL, TB3('>')));
     cv_textc(0, 40, 22, PAL_BEIGE, MODE_DESC[titleSel]);
     cv_textc(0, 40, 25, PAL_STEEL, "A OR START: OK   LEFT/RIGHT: CPU LEVEL");
-    cv_textc(0, 40, 27, PAL_GREY, "NEO GEO CD V0.9");
+    cv_textc(0, 40, 27, PAL_GREY, "NEO GEO CD V0.10");
 }
 
 static void draw_select_side(int i, int ox)
