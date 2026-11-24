@@ -1,0 +1,120 @@
+# Neo Geo CD build: PC checks (CPU vs CPU on every pairing, screenshots), then the
+# disc (NeoCore on Windows): BIN/CUE for real hardware / MiSTer / ODEs, CHD for MAME.
+# On main the disc is also added to the release named in VERSION.
+name: Neo Geo CD
+on:
+  push:
+    paths: ['neogeo-cd/**', '.github/workflows/neogeo-cd.yml', VERSION]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  pc:
+    name: PC checks (strict C89, CPU vs CPU, screenshots)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow
+      - name: Art
+        working-directory: neogeo-cd
+        run: python3 tools/make_tiles.py
+      - name: Build the harness
+        working-directory: neogeo-cd
+        run: sh test/build_pc.sh
+      - name: CPU vs CPU, every pairing (fails on a hang)
+        working-directory: neogeo-cd
+        run: build-pc/xm sim 1 5 5
+      - name: Tour the menus and modes, render screenshots
+        working-directory: neogeo-cd
+        run: |
+          mkdir -p shots
+          build-pc/xm script test/tour.txt shots
+          python3 test/render.py shots --sheet shots/00_sheet.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Crossmix-NGCD-screenshots
+          path: neogeo-cd/shots/*.png
+
+  disc:
+    name: Disc (NeoCore ISO, BIN/CUE, CHD)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy pillow
+      - name: Art
+        working-directory: neogeo-cd
+        run: python tools/make_tiles.py
+      - name: ffmpeg (only when music/ has songs that aren't WAV)
+        working-directory: neogeo-cd
+        shell: powershell
+        run: |
+          $own = Get-ChildItem music -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.mp3','.flac','.ogg','.opus','.m4a','.aac' }
+          if ($own -and -not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress }
+      - name: Audio (your songs from music/, placeholders for the rest, sound-chip effects)
+        working-directory: neogeo-cd
+        run: python tools/make_audio.py
+      - name: Build sprites, program, ISO and CHD
+        working-directory: neogeo-cd/src
+        shell: powershell
+        run: |
+          $bm = "..\neocore\toolchain\scripts\Builder-Manager.ps1"
+          $checks = @{ "make" = "..\build\Crossmix\Crossmix.prg" }
+          foreach ($rule in @("lib", "sprite", "make", "dist:iso", "dist:mame")) {
+            if ($rule -eq "dist:iso") {
+              New-Item -ItemType Directory -Force -Path ..\build\Crossmix\assets\cdda | Out-Null
+              Copy-Item assets\cdda\*.wav ..\build\Crossmix\assets\cdda\ -Force
+            }
+            Write-Host "=== mak $rule ===" -ForegroundColor Cyan
+            powershell -ExecutionPolicy Bypass -File $bm -ConfigFile project.xml -Rule $rule
+            if ($LASTEXITCODE -ne 0) {
+              Get-Content ..\build\Crossmix\gcc.log -ErrorAction SilentlyContinue
+              Get-Content ..\build\Crossmix\fix.log -ErrorAction SilentlyContinue
+              throw "mak $rule failed"
+            }
+            if ($checks[$rule] -and -not (Test-Path $checks[$rule])) {
+              Get-Content ..\build\Crossmix\gcc.log -ErrorAction SilentlyContinue
+              throw "mak $rule did not produce $($checks[$rule])"
+            }
+          }
+      - name: Converter output (for checking the fix palettes)
+        if: always()
+        shell: powershell
+        run: |
+          Get-ChildItem -Recurse neogeo-cd\src\out -ErrorAction SilentlyContinue | Select-Object FullName, Length
+          Get-Content neogeo-cd\src\out\fixPals.s -ErrorAction SilentlyContinue
+          Get-Content neogeo-cd\src\out\fixData.h -ErrorAction SilentlyContinue
+      - name: Raw BIN/CUE (MODE1/2352 data + audio tracks)
+        working-directory: neogeo-cd
+        run: python tools/make_bincue.py dist/Crossmix/Crossmix-0.9.0/cd/iso bincue
+      - name: Package
+        shell: bash
+        run: |
+          V=$(tr -d ' \n\r' < VERSION); echo "V=$V" >> $GITHUB_ENV
+          mkdir -p out
+          cd neogeo-cd/bincue && 7z a -tzip "../../out/Crossmix-$V-NeoGeoCD-BINCUE.zip" . > /dev/null && cd ../..
+          CHD=$(find neogeo-cd/dist -name '*.chd' | head -1)
+          if [ -n "$CHD" ]; then cp "$CHD" "out/Crossmix-$V-NeoGeoCD.chd"; fi
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Crossmix-NeoGeoCD
+          path: out/*
+          if-no-files-found: error
+      - name: Add to the release
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # the release for the current VERSION (made by the Release workflow); wait for it if it's new
+          for i in $(seq 1 30); do gh release view "$V" > /dev/null 2>&1 && break; sleep 10; done
+          gh release view "$V" > /dev/null 2>&1 || { echo "no release $V yet"; exit 0; }
+          gh release upload "$V" out/* --clobber
