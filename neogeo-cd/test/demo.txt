@@ -1,0 +1,9 @@
+# attract mode: the title starts a CPU vs CPU demo after 20 s
+wait 1250
+dump 40_demo
+wait 900
+dump 41_demo
+p1 A
+wait 5
+dump 42_back_to_title
+end

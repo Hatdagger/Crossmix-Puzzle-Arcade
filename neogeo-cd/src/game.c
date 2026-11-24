@@ -24,7 +24,9 @@ static SWORD phaseT;
 static BYTE swapped;
 static WORD fcount;
 static DWORD seedMix = 0x1234567UL;
-static BYTE bot[2];               /* PC harness: a CPU plays a human's board */
+static BYTE bot[2];               /* a CPU plays a human's board (attract mode, PC harness) */
+static BYTE demo;                 /* attract mode: CPU vs CPU until a button is pressed */
+static DWORD idleMs;
 
 WORD frames_now(void) { return fcount; }
 
@@ -175,7 +177,23 @@ static void open_menu(BYTE m, BYTE by) { menu = m; menuSel = 0; menuBy = by; sfx
 static Pad *pad_of(int i) { return human[i] && !bot[i] ? &hp[i] : &cpad[i]; }
 
 /* ---------------------------------------------------------------- screens */
-static void go_title(void) { screen = SC_TITLE; menu = MN_NONE; game_music(2); }
+static void go_title(void)
+{
+    if (demo) { demo = 0; bot[0] = 0; }
+    screen = SC_TITLE; menu = MN_NONE; idleMs = 0; game_music(2);
+}
+
+/* attract mode: after a while on the title, two CPUs play a round */
+static void start_demo(void)
+{
+    demo = 1; mode = M_CPU;
+    bot[0] = (BYTE)(3 + rnd_n(4));
+    cpuLevel = cpuLevel ? cpuLevel : 3;
+    pick[0] = rnd_n(TK_COUNT); pick[1] = RANDOM_PICK;
+    start_match();
+    level[1] = (BYTE)(3 + rnd_n(4));
+    make_track(1, 0);
+}
 
 static void go_select(void)
 {
@@ -192,9 +210,11 @@ static void go_select(void)
 static BYTE any_pressed(WORD b) { return (BYTE)(PAD_PRESSED(&hp[0], b) || PAD_PRESSED(&hp[1], b)); }
 static BYTE any_repeat(WORD b) { return (BYTE)(pad_repeat(&hp[0], b, 250, 120) || pad_repeat(&hp[1], b, 250, 120)); }
 
-static void title_frame(void)
+static void title_frame(WORD dt)
 {
     int i;
+    if (hp[0].cur | hp[1].cur) idleMs = 0;
+    else if ((idleMs += dt) > 20000UL) { start_demo(); return; }
     if (any_repeat(B_UP)) { titleSel = (BYTE)((titleSel + 3) & 3); sfx0(S_MENU); }
     if (any_repeat(B_DOWN)) { titleSel = (BYTE)((titleSel + 1) & 3); sfx0(S_MENU); }
     if (titleSel == M_CPU) {
@@ -404,6 +424,8 @@ static void draw_header(void)
         if (!human[i]) { cv_text(ox + 13, 0, PAL_GREY, "LV"); cv_text(ox + 15, 0, PAL_GREY, cv_num(level[i])); }
     }
     if (mode == M_SURV) { cv_text(17, 0, PAL_AMBER, "KO"); cv_text(19, 0, PAL_AMBER, cv_num(kos)); }
+    if (demo) cv_clear(13, 0, 14, 1);
+    if (demo) cv_textc(14, 12, 0, (fcount >> 5) & 1 ? PAL_WHITE : PAL_YELLOW, (fcount >> 5) & 1 ? "PRESS START" : "DEMO PLAY");
 }
 
 static void box(int x, int y, int w, int h)
@@ -481,9 +503,14 @@ void game_frame(WORD in1, WORD in2, WORD dt)
     pad_feed(&hp[0], in1, dt);
     pad_feed(&hp[1], in2, dt);
     switch (screen) {
-    case SC_TITLE:  title_frame(); break;
+    case SC_TITLE:  title_frame(dt); break;
     case SC_SELECT: select_frame(); break;
     default:
+        if (demo) {
+            /* any button ends the demo; so does the end of its round */
+            if (((hp[0].cur & ~hp[0].prev) | (hp[1].cur & ~hp[1].prev)) || phase == PH_ROUNDEND || phase == PH_OVER) { go_title(); break; }
+            menu = MN_NONE;
+        }
         match_update(dt);
         if (screen == SC_MATCH) match_draw();
         break;

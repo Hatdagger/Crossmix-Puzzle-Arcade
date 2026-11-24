@@ -55,8 +55,9 @@ static BYTE in_grid(int r, int c) { return (BYTE)(r >= 0 && r < MAXR && c >= 0 &
 static int neighbours(int r, int c, SBYTE out[6][2])
 {
     static const SBYTE ODD[4][2] = { {-1,0}, {-1,1}, {1,0}, {1,1} }, EVEN[4][2] = { {-1,-1}, {-1,0}, {1,-1}, {1,0} };
-    const SBYTE (*o)[2] = (r & 1) ? ODD : EVEN;
+    const SBYTE (*o)[2];
     int n = 0, k, rr, cc;
+    if (r & 1) o = ODD; else o = EVEN;
     if (in_grid(r, c - 1)) { out[n][0] = (SBYTE)r; out[n][1] = (SBYTE)(c - 1); n++; }
     if (in_grid(r, c + 1)) { out[n][0] = (SBYTE)r; out[n][1] = (SBYTE)(c + 1); n++; }
     for (k = 0; k < 4; k++) { rr = r + o[k][0]; cc = c + o[k][1]; if (in_grid(rr, cc)) { out[n][0] = (SBYTE)rr; out[n][1] = (SBYTE)cc; n++; } }
@@ -240,7 +241,7 @@ static int grey_spot(Track *t, int x, int *br, int *bc)
 {
     int r, c, i, k, up, upGrey, s, bs = -32000, dx;
     SBYTE nb[6][2];
-    *br = -1;
+    *br = -1; *bc = 0;
     while (x < 0) x += W;
     while (x >= W) x -= W;
     for (r = 0; r < MAXR; r++) for (c = 0; c < row_len(r); c++) {
@@ -267,7 +268,7 @@ static void land_garbage(Track *t)
     Batch bs[8];
     BYTE nb, k;
     WORD total = 0, i;
-    int r, c;
+    int r = 0, c = 0;
     if (!t->vs) return;
     nb = trk_take_ready(t, GARBAGE_DELAY, MAX_GARBAGE, bs, 8);
     if (!nb) return;

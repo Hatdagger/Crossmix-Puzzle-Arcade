@@ -346,7 +346,7 @@ def make_bank_a():
     b.tile(25, ['GSGSGSGS', 'SGSGSGSG', 'GSGSGSGS', 'SGSGSGSG', 'GSGSGSGS', 'SGSGSGSG', 'GSGSGSGS', 'SGSGSGSG'])   # fog A
     b.tile(26, ['SSGSSSGS', 'SGSGSGSG', 'GSSSGSSS', 'SGSGSGSG', 'SSGSSSGS', 'SGSGSGSG', 'GSSSGSSS', 'SGSGSGSG'])   # fog B
     b.tile(27, ['...C....', '...C....', 'CCCCCCC.', '.CCCCC..', '..CCC...', '.CC.CC..', '.C...C..', '........'])   # star
-    b.tile(28, ['........', '........', '........', '...CC...', '...CC...', '........', '........', '........'])   # dot
+    b.tile(28, ['FFFFFFFF', 'FFFFFFFF', 'FFFFFFFF', 'FFFCCFFF', 'FFFCCFFF', 'FFFFFFFF', 'FFFFFFFF', 'FFFFFFFF'])   # dot (on the field colour)
     b.tile(29, ['.C......', '.CC.....', '.CCC....', '.CCCC...', '.CCC....', '.CC.....', '.C......', '........'])   # arrow
     b.tile(30, ['........', '........', '........', 'CCC.CCC.', 'CCC.CCC.', '........', '........', '........'])   # danger line
     b.tile(31, ['KKKKKKKK'] * 8)                                                                              # black

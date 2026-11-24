@@ -91,6 +91,32 @@ jobs:
           Get-ChildItem -Recurse neogeo-cd\src\out -ErrorAction SilentlyContinue | Select-Object FullName, Length
           Get-Content neogeo-cd\src\out\fixPals.s -ErrorAction SilentlyContinue
           Get-Content neogeo-cd\src\out\fixData.h -ErrorAction SilentlyContinue
+      - name: MAME smoke test (boots the disc, attract mode, snapshots, dropped frames)
+        continue-on-error: true
+        working-directory: neogeo-cd/build/mame
+        shell: powershell
+        run: |
+          $map = Get-Content ..\Crossmix\output.map
+          function Addr($name) {
+            $l = $map | Select-String -Pattern ("0x[0-9a-fA-F]+\s+_?" + $name + "\s*$") | Select-Object -First 1
+            if ($l) { return [string]($l.Matches[0].Value -split '\s+')[0] } else { return "0" }
+          }
+          $env:XM_DROP_ADDR = Addr "DAT_droppedFrames"
+          $env:XM_FRAME_ADDR = Addr "DAT_frameCounter"
+          Write-Host "droppedFrames at $env:XM_DROP_ADDR, frameCounter at $env:XM_FRAME_ADDR"
+          New-Item -ItemType Directory -Force -Path snaps | Out-Null
+          $margs = "-rompath roms -hashpath hash -cfg_directory $env:TEMP -nvram_directory $env:TEMP -skip_gameinfo -video none -sound none -nothrottle -seconds_to_run 400 -snapshot_directory snaps -snapname %i -autoboot_script ..\..\test\mame_smoke.lua neocdz Crossmix"
+          Write-Host "mame64.exe $margs"
+          $p = Start-Process -FilePath .\mame64.exe -ArgumentList $margs -NoNewWindow -Wait -PassThru -RedirectStandardOutput mame_out.txt -RedirectStandardError mame_err.txt
+          Get-Content mame_out.txt | Select-Object -Last 40
+          Get-Content mame_err.txt | Select-Object -Last 20
+          Get-ChildItem -Recurse snaps | Select-Object FullName, Length
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Crossmix-NGCD-MAME-snapshots
+          path: neogeo-cd/build/mame/snaps/**
+          if-no-files-found: ignore
       - name: Raw BIN/CUE (MODE1/2352 data + audio tracks)
         working-directory: neogeo-cd
         run: python tools/make_bincue.py dist/Crossmix/Crossmix-0.9.0/cd/iso bincue
