@@ -1131,7 +1131,6 @@ static void draw_climb(Track *t, int ox);
 void brick_draw(Track *t, int ox)
 {
     int x, y, i, fx = ox + FX;
-    BYTE c;
     if (t->kind == TK_CLIMB) { draw_climb(t, ox); return; }
     cv_frame(fx, FY, COLS, ROWS - HIDDEN, PAL_STEEL);
     for (y = HIDDEN; y < ROWS; y++) {
